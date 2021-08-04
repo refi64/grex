@@ -7,7 +7,7 @@
 #define _GREX_ALLOW_INDIVIDUAL_HEADERS
 
 #include "grex-binding.h"
-#include "grex-element.h"
+#include "grex-fragment.h"
 #include "grex-source-location.h"
 
 #undef _GREX_ALLOW_INDIVIDUAL_HEADERS

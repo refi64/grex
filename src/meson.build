@@ -15,14 +15,14 @@ grex_config_h = configure_file(
 
 grex_sources = [
   'grex-binding.c',
-  'grex-element.c',
+  'grex-fragment.c',
   'grex-source-location.c',
 ]
 
 grex_headers = [
   grex_config_h,
   'grex-binding.h',
-  'grex-element.h',
+  'grex-fragment.h',
   'grex-source-location.h',
 ]
 

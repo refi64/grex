@@ -6,20 +6,20 @@ from gi.repository import GLib, Grex, Gtk
 import pytest
 
 
-def test_empty_element():
+def test_empty_fragment():
     location = Grex.SourceLocation()
-    element = Grex.Element.new(Gtk.Box.__gtype__, location)
+    fragment = Grex.Fragment.new(Gtk.Box.__gtype__, location)
 
-    assert element.get_root_type() == Gtk.Box.__gtype__
-    assert element.get_children() == []
-    assert element.get_location() == location
+    assert fragment.get_root_type() == Gtk.Box.__gtype__
+    assert fragment.get_children() == []
+    assert fragment.get_location() == location
 
 
-def test_element_children():
+def test_fragment_children():
     location = Grex.SourceLocation()
 
     parent, child1, child2 = [
-        Grex.Element.new(Gtk.Box.__gtype__, location) for _ in range(3)
+        Grex.Fragment.new(Gtk.Box.__gtype__, location) for _ in range(3)
     ]
 
     parent.add_child(child1)
@@ -29,13 +29,13 @@ def test_element_children():
     assert parent.get_children() == [child1, child2]
 
 
-def test_element_parsing():
-    element = Grex.Element.parse_xml('<GtkBox/>', 'file')
-    assert element.get_root_type() == Gtk.Box.__gtype__
-    assert element.get_location().get_file() == 'file'
+def test_fragment_parsing():
+    fragment = Grex.Fragment.parse_xml('<GtkBox/>', 'file')
+    assert fragment.get_root_type() == Gtk.Box.__gtype__
+    assert fragment.get_location().get_file() == 'file'
 
 
-def test_element_parsing_children():
+def test_fragment_parsing_children():
     XML = '''
     <GtkBox>
         <GtkGrid>
@@ -49,7 +49,7 @@ def test_element_parsing_children():
     </GtkBox>
     '''
 
-    root = Grex.Element.parse_xml(XML, None, None)
+    root = Grex.Fragment.parse_xml(XML, None, None)
     assert root.get_root_type() == Gtk.Box.__gtype__
 
     [grid, flowbox] = root.get_children()
@@ -64,8 +64,8 @@ def test_element_parsing_children():
     assert switch.get_root_type() == Gtk.Switch.__gtype__
 
 
-def test_element_parsing_invalid_type():
+def test_fragment_parsing_invalid_type():
     with pytest.raises(GLib.GError) as excinfo:
-        Grex.Element.parse_xml('<GtkThing/>', None, None)
+        Grex.Fragment.parse_xml('<GtkThing/>', None, None)
 
     assert 'Unknown type: GtkThing' in excinfo.value.message
