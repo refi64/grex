@@ -8,6 +8,7 @@
 
 #include "grex-binding.h"
 #include "grex-fragment.h"
+#include "grex-property-set.h"
 #include "grex-source-location.h"
 
 #undef _GREX_ALLOW_INDIVIDUAL_HEADERS
