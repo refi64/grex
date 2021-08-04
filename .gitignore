@@ -1,0 +1,7 @@
+.cache/
+.pytest_cache/
+_build/
+__pycache__/
+
+.gdb_history
+compile_commands.json

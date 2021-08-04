@@ -1,0 +1,3 @@
+[submodule "gpropz"]
+	path = subprojects/gpropz
+	url = https://github.com/refi64/gpropz

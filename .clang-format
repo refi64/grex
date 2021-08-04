@@ -1,0 +1,7 @@
+AlignEscapedNewlines: Left
+AlwaysBreakAfterReturnType: TopLevelDefinitions
+ColumnLimit: 80
+FixNamespaceComments: true
+IncludeBlocks: Regroup
+PointerAlignment: Right
+SpacesBeforeTrailingComments: 2
