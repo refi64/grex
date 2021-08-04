@@ -14,7 +14,7 @@
 struct _GrexFragment {
   GObject parent_instance;
 
-  GType root_type;
+  GType widget_type;
   GrexSourceLocation *location;
 
   GPtrArray *children;
@@ -25,7 +25,7 @@ typedef struct {
 } GrexFragmentParseErrorPrivate;
 
 enum {
-  PROP_ROOT_TYPE = 1,
+  PROP_WIDGET_TYPE = 1,
   PROP_LOCATION,
   N_PROPS,
 };
@@ -42,6 +42,32 @@ grex_fragment_dispose(GObject *object) {
   g_clear_pointer(&fragment->children, g_ptr_array_unref);  // NOLINT
 }
 
+static gboolean
+is_gtk_widget_subclass(GType type) {
+  return g_type_is_a(type, GTK_TYPE_WIDGET);
+}
+
+static void
+grex_fragment_widget_type_filter_set(GObject *object, gpointer prop,
+                                     guint prop_id, gconstpointer source,
+                                     GParamSpec *pspec) {
+  GType *new_type = (GType *)source;
+  if (!is_gtk_widget_subclass(*new_type)) {
+    const char *new_type_descr = g_quark_to_string(g_type_qname(*new_type));
+    g_warning("Type '%s' assigned to GrexFragment:widget-type should be a "
+              "GtkWidget subclass",
+              new_type_descr);
+    return;
+  }
+
+  *(GType *)prop = *new_type;
+}
+
+static GpropzValueFilter widget_type_filter = {
+    .get_filter = NULL,
+    .set_filter = grex_fragment_widget_type_filter_set,
+};
+
 static void
 grex_fragment_class_init(GrexFragmentClass *klass) {
   GObjectClass *object_class = G_OBJECT_CLASS(klass);
@@ -50,11 +76,12 @@ grex_fragment_class_init(GrexFragmentClass *klass) {
 
   gpropz_class_init_property_functions(object_class);
 
-  properties[PROP_ROOT_TYPE] = g_param_spec_gtype(
-      "root-type", "Root type", "The type this fragment represents.",
+  properties[PROP_WIDGET_TYPE] = g_param_spec_gtype(
+      "widget-type", "Widget type", "The type this fragment represents.",
       G_TYPE_NONE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
-  gpropz_install_property(object_class, GrexFragment, root_type, PROP_ROOT_TYPE,
-                          properties[PROP_ROOT_TYPE], NULL);
+  gpropz_install_property(object_class, GrexFragment, widget_type,
+                          PROP_WIDGET_TYPE, properties[PROP_WIDGET_TYPE],
+                          &widget_type_filter);
 
   properties[PROP_LOCATION] = g_param_spec_object(
       "location", "Source location",
@@ -71,7 +98,7 @@ grex_fragment_init(GrexFragment *fragment) {
 
 /**
  * grex_fragment_new:
- * @root_type: The #GType this fragment represents.
+ * @widget_type: The #GType this fragment represents.
  * @location: The source location for this fragment.
  *
  * Creates a new, empty #GrexFragment representing the given type at the given
@@ -80,9 +107,9 @@ grex_fragment_init(GrexFragment *fragment) {
  * Returns: (transfer full): A new fragment.
  */
 GrexFragment *
-grex_fragment_new(GType root_type, GrexSourceLocation *location) {
-  return g_object_new(GREX_TYPE_FRAGMENT, "root-type", root_type, "location",
-                      location, NULL);
+grex_fragment_new(GType widget_type, GrexSourceLocation *location) {
+  return g_object_new(GREX_TYPE_FRAGMENT, "widget-type", widget_type,
+                      "location", location, NULL);
 }
 
 typedef struct {
@@ -115,6 +142,10 @@ grex_fragment_parser_start_fragment(GMarkupParseContext *context,
   if (type == 0) {
     g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_UNKNOWN_ELEMENT,
                 "Unknown type: %s", name);
+    return;
+  } else if (!is_gtk_widget_subclass(type)) {
+    g_set_error(error, G_MARKUP_ERROR, G_MARKUP_ERROR_INVALID_CONTENT,
+                "Type '%s' is not a GtkWidget subclass", name);
     return;
   }
 
@@ -184,14 +215,14 @@ grex_fragment_parse_xml(const char *xml, const char *filename,
 }
 
 /**
- * grex_fragment_get_root_type:
+ * grex_fragment_get_widget_type:
  *
- * Returns this fragment's root #GType.
+ * Returns this fragment's widget #GType.
  *
- * Returns: The root type.
+ * Returns: The widget type.
  */
-GPROPZ_DEFINE_RO(GType, GrexFragment, grex_fragment, root_type,
-                 properties[PROP_ROOT_TYPE])
+GPROPZ_DEFINE_RO(GType, GrexFragment, grex_fragment, widget_type,
+                 properties[PROP_WIDGET_TYPE])
 
 /**
  * grex_fragment_get_location:
