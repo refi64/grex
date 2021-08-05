@@ -25,13 +25,13 @@ def test_fragment_host_properties():
     host = Grex.FragmentHost.new(label)
 
     properties = Grex.PropertySet()
-    properties.add('label', GObject.Value(str, 'hello'))
+    properties.insert('label', GObject.Value(str, 'hello'))
 
     host.apply_latest_properties(properties)
     assert label.get_label() == 'hello'
     assert not label.get_wrap()
 
-    properties.add('wrap', GObject.Value(bool, True))
+    properties.insert('wrap', GObject.Value(bool, True))
     host.apply_latest_properties(properties)
     assert label.get_label() == 'hello'
     assert label.get_wrap()

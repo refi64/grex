@@ -64,15 +64,16 @@ grex_property_set_get_keys(GrexPropertySet *properties) {
 }
 
 /**
- * grex_property_set_add:
+ * grex_property_set_insert:
  * @name: The property name.
  * @value: The property value.
  *
- * Adds the given property to the set, replacing any previous values if present.
+ * Inserts the given property ito the set, replacing any previous values if
+ * present.
  */
 void
-grex_property_set_add(GrexPropertySet *properties, const char *name,
-                      const GValue *value) {
+grex_property_set_insert(GrexPropertySet *properties, const char *name,
+                         const GValue *value) {
   g_autoptr(GValue) property_value = g_new0(GValue, 1);
   g_value_init(property_value, G_VALUE_TYPE(value));
   g_value_copy(value, property_value);

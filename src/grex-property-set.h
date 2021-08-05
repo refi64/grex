@@ -15,8 +15,8 @@ G_DECLARE_FINAL_TYPE(GrexPropertySet, grex_property_set, GREX, PROPERTY_SET,
 GrexPropertySet *grex_property_set_new();
 
 GList *grex_property_set_get_keys(GrexPropertySet *properties);
-void grex_property_set_add(GrexPropertySet *properties, const char *name,
-                           const GValue *value);
+void grex_property_set_insert(GrexPropertySet *properties, const char *name,
+                              const GValue *value);
 gboolean grex_property_set_contains(GrexPropertySet *properties,
                                     const char *name);
 gboolean grex_property_set_get(GrexPropertySet *properties, const char *name,

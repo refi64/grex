@@ -10,7 +10,7 @@ def test_property_set_basics():
     assert not props.get('test', get_result)
 
     value = GObject.Value(int, 10)
-    props.add('test', value)
+    props.insert('test', value)
 
     assert props.contains('test')
     assert props.get_keys() == ['test']
@@ -20,7 +20,7 @@ def test_property_set_basics():
     assert get_result.get_value() == 10
 
     value2 = GObject.Value(str, 'abc')
-    props.add('test2', value2)
+    props.insert('test2', value2)
 
     assert props.contains('test2')
     # get_keys() is not ordered, so we sort it here.
@@ -45,19 +45,19 @@ def test_property_set_diff():
 
     test = GObject.Value(int, 10)
 
-    new.add('test', test)
+    new.insert('test', test)
     assert _normalize_diff(old.diff_keys(new)) == [['test'], [], []]
     assert _normalize_diff(new.diff_keys(old)) == [[], ['test'], []]
 
-    old.add('test', test)
+    old.insert('test', test)
     assert _normalize_diff(old.diff_keys(new)) == [[], [], ['test']]
     assert _normalize_diff(new.diff_keys(old)) == [[], [], ['test']]
 
-    new.add('x', test)
+    new.insert('x', test)
     assert _normalize_diff(old.diff_keys(new)) == [['x'], [], ['test']]
     assert _normalize_diff(new.diff_keys(old)) == [[], ['x'], ['test']]
 
-    old.add('x', test)
+    old.insert('x', test)
     assert _normalize_diff(old.diff_keys(new)) == [[], [], ['test', 'x']]
     assert _normalize_diff(new.diff_keys(old)) == [[], [], ['test', 'x']]
 

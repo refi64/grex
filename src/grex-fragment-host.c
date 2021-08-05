@@ -194,7 +194,7 @@ update_properties_by_name(GrexFragmentHost *host, GObject *widget_object,
     g_warn_if_fail(grex_property_set_get(properties, name, &value));
     g_object_set_property(widget_object, name, &value);
 
-    grex_property_set_add(host->applied_properties, name, &value);
+    grex_property_set_insert(host->applied_properties, name, &value);
   }
 }
 
