@@ -17,6 +17,7 @@ struct _GrexFragment {
   GType widget_type;
   GrexSourceLocation *location;
 
+  GHashTable *bindings;
   GPtrArray *children;
 };
 
@@ -34,8 +35,9 @@ static void
 grex_fragment_dispose(GObject *object) {
   GrexFragment *fragment = GREX_FRAGMENT(object);
 
-  g_clear_object(&fragment->location);                      // NOLINT
-  g_clear_pointer(&fragment->children, g_ptr_array_unref);  // NOLINT
+  g_clear_object(&fragment->location);                       // NOLINT
+  g_clear_pointer(&fragment->bindings, g_hash_table_unref);  // NOLINT
+  g_clear_pointer(&fragment->children, g_ptr_array_unref);   // NOLINT
 }
 
 static gboolean
@@ -89,6 +91,8 @@ grex_fragment_class_init(GrexFragmentClass *klass) {
 
 static void
 grex_fragment_init(GrexFragment *fragment) {
+  fragment->bindings =
+      g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
   fragment->children = g_ptr_array_new_with_free_func(g_object_unref);
 }
 
@@ -229,6 +233,60 @@ GPROPZ_DEFINE_RO(GType, GrexFragment, grex_fragment, widget_type,
  */
 GPROPZ_DEFINE_RO(GrexSourceLocation *, GrexFragment, grex_fragment, location,
                  properties[PROP_LOCATION])
+
+/**
+ * grex_fragment_insert_binding:
+ * @target: The binding's target property.
+ * @binding: (transfer none): The binding to insert.
+ *
+ * Inserts a new property binding into this fragment, overwriting any existing
+ * bindings.
+ */
+void
+grex_fragment_insert_binding(GrexFragment *fragment, const char *target,
+                             GrexBinding *binding) {
+  g_hash_table_insert(fragment->bindings, g_strdup(target),
+                      g_object_ref(binding));
+}
+
+/**
+ * grex_fragment_get_binding_targets:
+ *
+ * Returns the names of the targets contained within this fragment's property
+ * bindings under the same name.
+ *
+ * Returns: (element-type utf8) (transfer container): A list of target names.
+ */
+GList *
+grex_fragment_get_binding_targets(GrexFragment *fragment) {
+  return g_hash_table_get_keys(fragment->bindings);
+}
+
+/**
+ * grex_fragment_get_binding:
+ *
+ * Returns the binding associated with the given target name.
+ *
+ * Returns: (transfer none): The binding associated with the given target name,
+ *          or NULL if it could not be found.
+ */
+GrexBinding *
+grex_fragment_get_binding(GrexFragment *fragment, const char *target) {
+  return g_hash_table_lookup(fragment->bindings, target);
+}
+
+/**
+ * grex_fragment_remove_binding:
+ * @target: The binding target to remove.
+ *
+ * Removes the binding from this fragment.
+ *
+ * Returns: TRUE if the binding was present.
+ */
+gboolean
+grex_fragment_remove_binding(GrexFragment *fragment, const char *target) {
+  return g_hash_table_remove(fragment->bindings, target);
+}
 
 /**
  * grex_fragment_add_child:

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "grex-binding.h"
 #include "grex-config.h"
 #include "grex-source-location.h"
 
@@ -20,6 +21,14 @@ GrexFragment *grex_fragment_parse_xml(const char *xml, const char *filename,
 
 GType grex_fragment_get_widget_type(GrexFragment *fragment);
 GrexSourceLocation *grex_fragment_get_location(GrexFragment *fragment);
+
+void grex_fragment_insert_binding(GrexFragment *fragment, const char *target,
+                                  GrexBinding *binding);
+GList *grex_fragment_get_binding_targets(GrexFragment *fragment);
+GrexBinding *grex_fragment_get_binding(GrexFragment *fragment,
+                                       const char *target);
+gboolean grex_fragment_remove_binding(GrexFragment *fragment,
+                                      const char *target);
 
 void grex_fragment_add_child(GrexFragment *fragment, GrexFragment *child);
 GList *grex_fragment_get_children(GrexFragment *fragment);

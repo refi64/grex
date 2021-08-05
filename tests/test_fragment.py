@@ -15,6 +15,28 @@ def test_empty_fragment():
     assert fragment.get_location() == location
 
 
+def test_fragment_bindings():
+    fragment = Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation())
+
+    assert fragment.get_binding_targets() == []
+    assert fragment.get_binding('not found') is None
+
+    binding_x = Grex.BindingBuilder().build(Grex.SourceLocation())
+    fragment.insert_binding('x', binding_x)
+    assert fragment.get_binding_targets() == ['x']
+    assert fragment.get_binding('x') == binding_x
+
+    binding_y = Grex.BindingBuilder().build(Grex.SourceLocation())
+    fragment.insert_binding('y', binding_y)
+    assert list(sorted(fragment.get_binding_targets())) == ['x', 'y']
+    assert fragment.get_binding('y') == binding_y
+
+    assert fragment.remove_binding('x')
+    assert not fragment.remove_binding('x')
+    assert fragment.get_binding('x') is None
+    assert fragment.get_binding_targets() == ['y']
+
+
 def test_fragment_children():
     location = Grex.SourceLocation()
 
