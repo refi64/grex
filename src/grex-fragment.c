@@ -20,10 +20,6 @@ struct _GrexFragment {
   GPtrArray *children;
 };
 
-typedef struct {
-  GrexSourceLocation *location;
-} GrexFragmentParseErrorPrivate;
-
 enum {
   PROP_WIDGET_TYPE = 1,
   PROP_LOCATION,
