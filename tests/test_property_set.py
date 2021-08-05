@@ -31,3 +31,37 @@ def test_property_set_basics():
 
     assert props.remove('test')
     assert props.get_keys() == ['test2']
+
+
+def _normalize_diff(diff):
+    return [list(sorted(names)) for names in diff]
+
+
+def test_property_set_diff():
+    old = Grex.PropertySet()
+    new = Grex.PropertySet()
+
+    assert _normalize_diff(old.diff_keys(new)) == [[], [], []]
+
+    test = GObject.Value(int, 10)
+
+    new.add('test', test)
+    assert _normalize_diff(old.diff_keys(new)) == [['test'], [], []]
+    assert _normalize_diff(new.diff_keys(old)) == [[], ['test'], []]
+
+    old.add('test', test)
+    assert _normalize_diff(old.diff_keys(new)) == [[], [], ['test']]
+    assert _normalize_diff(new.diff_keys(old)) == [[], [], ['test']]
+
+    new.add('x', test)
+    assert _normalize_diff(old.diff_keys(new)) == [['x'], [], ['test']]
+    assert _normalize_diff(new.diff_keys(old)) == [[], ['x'], ['test']]
+
+    old.add('x', test)
+    assert _normalize_diff(old.diff_keys(new)) == [[], [], ['test', 'x']]
+    assert _normalize_diff(new.diff_keys(old)) == [[], [], ['test', 'x']]
+
+    new.remove('test')
+    old.remove('x')
+    assert _normalize_diff(old.diff_keys(new)) == [['x'], ['test'], []]
+    assert _normalize_diff(new.diff_keys(old)) == [['test'], ['x'], []]

@@ -26,6 +26,6 @@ gboolean grex_property_set_remove(GrexPropertySet *properties,
 
 void grex_property_set_diff_keys(GrexPropertySet *old_set,
                                  GrexPropertySet *new_set, GList **added,
-                                 GList **deleted, GList **intersection);
+                                 GList **removed, GList **kept);
 
 G_END_DECLS

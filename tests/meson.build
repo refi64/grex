@@ -6,7 +6,7 @@ test_env = environment()
 test_env.prepend('LD_LIBRARY_PATH', g_grex_build_dir)
 test_env.prepend('GI_TYPELIB_PATH', g_grex_build_dir)
 
-pytest_args = []
+pytest_args = ['-v']
 if get_option('pytest-force-colors')
   pytest_args += ['--color=yes']
 endif

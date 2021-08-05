@@ -137,28 +137,27 @@ grex_property_set_remove(GrexPropertySet *properties, const char *name) {
  * grex_property_set_diff_keys:
  * @old_set: The old property set.
  * @new_set: The new property set.
- * @added: (out) (element-type utf8): Will contain property names that were
- *                                    added.
- * @deleted: (out) (element-type utf8): Will contain property names that were
- *                                      removed.
- * @intersection: (out) (element-type utf8): Will contain property names that
- *                                           are present in both sets.
+ * @added: (out) (element-type utf8) (transfer container): Will contain property
+ *         names that were added.
+ * @removed: (out) (element-type utf8) (transfer container): Will contain
+ *           property names that were removed.
+ * @kept: (out) (element-type utf8) (transfer container): Will contain property
+ *        names that are present in both sets.
  *
  * Computers the difference between the property names between the old and new
- * sets, saving the list of keys added and deleted in from the old to the new
- * one. Keys present in both are stored in @intersection.
+ * sets, saving the list of keys added and removed in from the old to the new
+ * one. Keys present in both are stored in @kept.
  */
 void
 grex_property_set_diff_keys(GrexPropertySet *old_set, GrexPropertySet *new_set,
-                            GList **added, GList **deleted,
-                            GList **intersection) {
+                            GList **added, GList **removed, GList **kept) {
   g_return_if_fail(added != NULL);
-  g_return_if_fail(deleted != NULL);
-  g_return_if_fail(intersection != NULL);
+  g_return_if_fail(removed != NULL);
+  g_return_if_fail(kept != NULL);
 
   g_return_if_fail(*added == NULL);
-  g_return_if_fail(*deleted == NULL);
-  g_return_if_fail(*intersection == NULL);
+  g_return_if_fail(*removed == NULL);
+  g_return_if_fail(*kept == NULL);
 
   GHashTableIter iter;
   gpointer key, value;
@@ -166,9 +165,9 @@ grex_property_set_diff_keys(GrexPropertySet *old_set, GrexPropertySet *new_set,
   g_hash_table_iter_init(&iter, old_set->properties);
   while (g_hash_table_iter_next(&iter, &key, &value)) {
     if (!grex_property_set_contains(new_set, key)) {
-      *deleted = g_list_prepend(*deleted, key);
+      *removed = g_list_prepend(*removed, key);
     } else {
-      *intersection = g_list_prepend(*intersection, key);
+      *kept = g_list_prepend(*kept, key);
     }
   }
 
