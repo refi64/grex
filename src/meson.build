@@ -32,6 +32,15 @@ grex_headers = [
 
 grex_args = ['-D_GREX_INTERNAL']
 
+grex_enums = gnome.mkenums_simple(
+  'grex-enums',
+  sources : grex_headers,
+  install_header : true,
+)
+
+grex_sources += grex_enums[0]
+grex_headers += grex_enums[1]
+
 g_grex_lib = library(
   'grex-@0@'.format(g_abi_version),
   grex_sources,
