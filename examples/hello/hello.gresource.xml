@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Any copyright is dedicated to the Public Domain.
+   - https://creativecommons.org/publicdomain/zero/1.0/ -->
+<gresources>
+  <gresource prefix="/org/hello/Hello">
+    <file>hello-window.xml</file>
+  </gresource>
+</gresources>

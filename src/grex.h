@@ -10,7 +10,9 @@
 #include "grex-enums.h"
 #include "grex-fragment-host.h"
 #include "grex-fragment.h"
+#include "grex-inflator.h"
 #include "grex-property-set.h"
 #include "grex-source-location.h"
+#include "grex-template.h"
 
 #undef _GREX_ALLOW_INDIVIDUAL_HEADERS

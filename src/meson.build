@@ -17,8 +17,10 @@ grex_sources = [
   'grex-binding.c',
   'grex-fragment.c',
   'grex-fragment-host.c',
+  'grex-inflator.c',
   'grex-property-set.c',
   'grex-source-location.c',
+  'grex-template.c',
 ]
 
 grex_headers = [
@@ -26,8 +28,10 @@ grex_headers = [
   'grex-binding.h',
   'grex-fragment.h',
   'grex-fragment-host.h',
+  'grex-inflator.h',
   'grex-property-set.h',
   'grex-source-location.h',
+  'grex-template.h',
 ]
 
 grex_args = ['-D_GREX_INTERNAL']
@@ -43,14 +47,15 @@ grex_headers += grex_enums[1]
 
 g_grex_lib = library(
   'grex-@0@'.format(g_abi_version),
-  grex_sources,
+  grex_sources + grex_headers,
   c_args : grex_args,
   dependencies : g_grex_dependencies,
 )
 
-grex_dep = declare_dependency(
+g_grex_dep = declare_dependency(
   include_directories : ['.'],
   link_with : [g_grex_lib],
+  dependencies : g_grex_dependencies,
 )
 
 grex_gir = gnome.generate_gir(
