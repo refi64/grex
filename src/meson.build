@@ -21,6 +21,7 @@ grex_sources = [
   'grex-property-set.c',
   'grex-source-location.c',
   'grex-template.c',
+  'grex-value-holder.c',
 ]
 
 grex_headers = [
@@ -32,6 +33,7 @@ grex_headers = [
   'grex-property-set.h',
   'grex-source-location.h',
   'grex-template.h',
+  'grex-value-holder.h',
 ]
 
 grex_args = ['-D_GREX_INTERNAL']

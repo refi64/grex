@@ -14,5 +14,6 @@
 #include "grex-property-set.h"
 #include "grex-source-location.h"
 #include "grex-template.h"
+#include "grex-value-holder.h"
 
 #undef _GREX_ALLOW_INDIVIDUAL_HEADERS
