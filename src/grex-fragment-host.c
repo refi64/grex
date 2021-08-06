@@ -172,12 +172,13 @@ update_properties_by_name(GrexFragmentHost *host, GObject *widget_object,
                           GrexPropertySet *properties, GList *names) {
   for (; names != NULL; names = names->next) {
     const char *name = names->data;
-    g_auto(GValue) value = G_VALUE_INIT;
 
-    g_warn_if_fail(grex_property_set_get(properties, name, &value));
-    g_object_set_property(widget_object, name, &value);
+    GrexValueHolder *value = grex_property_set_get(properties, name);
+    g_warn_if_fail(value != NULL);
+    g_object_set_property(widget_object, name,
+                          grex_value_holder_get_value(value));
 
-    grex_property_set_insert(host->applied_properties, name, &value);
+    grex_property_set_insert(host->applied_properties, name, value);
   }
 }
 

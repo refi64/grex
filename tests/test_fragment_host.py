@@ -1,4 +1,4 @@
-from gi.repository import GObject, Grex, Gtk
+from gi.repository import Grex, Gtk
 
 
 def test_fragment_host_construction():
@@ -25,13 +25,13 @@ def test_fragment_host_properties():
     host = Grex.FragmentHost.new(label)
 
     properties = Grex.PropertySet()
-    properties.insert('label', GObject.Value(str, 'hello'))
+    properties.insert('label', Grex.ValueHolder('hello'))
 
     host.apply_latest_properties(properties)
     assert label.get_label() == 'hello'
     assert not label.get_wrap()
 
-    properties.insert('wrap', GObject.Value(bool, True))
+    properties.insert('wrap', Grex.ValueHolder(True))
     host.apply_latest_properties(properties)
     assert label.get_label() == 'hello'
     assert label.get_wrap()

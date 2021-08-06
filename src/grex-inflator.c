@@ -51,7 +51,8 @@ grex_inflator_evaluate_fragment_property_set(GrexFragment *fragment) {
       continue;
     }
 
-    grex_property_set_insert(properties, target->data, &value);
+    grex_property_set_insert(properties, target->data,
+                             grex_value_holder_new(&value));
   }
 
   return g_steal_pointer(&properties);

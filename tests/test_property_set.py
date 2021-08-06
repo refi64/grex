@@ -1,33 +1,25 @@
-from gi.repository import GObject, Grex
+from gi.repository import Grex
 
 
 def test_property_set_basics():
     props = Grex.PropertySet()
     assert not props.contains('test')
     assert props.get_keys() == []
+    assert props.get('test') is None
 
-    get_result = GObject.Value()
-    assert not props.get('test', get_result)
-
-    value = GObject.Value(int, 10)
-    props.insert('test', value)
+    props.insert('test', Grex.ValueHolder(10))
 
     assert props.contains('test')
     assert props.get_keys() == ['test']
+    assert props.get('test').get_value() == 10
 
-    get_result = GObject.Value()
-    assert props.get('test', get_result)
-    assert get_result.get_value() == 10
-
-    value2 = GObject.Value(str, 'abc')
-    props.insert('test2', value2)
-
+    props.insert('test2', Grex.ValueHolder('abc'))
     assert props.contains('test2')
+
     # get_keys() is not ordered, so we sort it here.
     assert list(sorted(props.get_keys())) == ['test', 'test2']
-    get_result = GObject.Value()
-    assert props.get('test2', get_result)
-    assert get_result.get_value() == 'abc'
+
+    assert props.get('test2').get_value() == 'abc'
 
     assert props.remove('test')
     assert props.get_keys() == ['test2']
@@ -43,21 +35,21 @@ def test_property_set_diff():
 
     assert _normalize_diff(old.diff_keys(new)) == [[], [], []]
 
-    test = GObject.Value(int, 10)
+    value = Grex.ValueHolder('value')
 
-    new.insert('test', test)
+    new.insert('test', value)
     assert _normalize_diff(old.diff_keys(new)) == [['test'], [], []]
     assert _normalize_diff(new.diff_keys(old)) == [[], ['test'], []]
 
-    old.insert('test', test)
+    old.insert('test', value)
     assert _normalize_diff(old.diff_keys(new)) == [[], [], ['test']]
     assert _normalize_diff(new.diff_keys(old)) == [[], [], ['test']]
 
-    new.insert('x', test)
+    new.insert('x', value)
     assert _normalize_diff(old.diff_keys(new)) == [['x'], [], ['test']]
     assert _normalize_diff(new.diff_keys(old)) == [[], ['x'], ['test']]
 
-    old.insert('x', test)
+    old.insert('x', value)
     assert _normalize_diff(old.diff_keys(new)) == [[], [], ['test', 'x']]
     assert _normalize_diff(new.diff_keys(old)) == [[], [], ['test', 'x']]
 

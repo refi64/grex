@@ -13,14 +13,6 @@ struct _GrexPropertySet {
 G_DEFINE_TYPE(GrexPropertySet, grex_property_set, G_TYPE_OBJECT)
 
 static void
-free_heap_g_value(GValue *value) {
-  g_value_unset(value);
-  g_free(value);
-}
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(GValue, free_heap_g_value)
-
-static void
 grex_property_set_dispose(GObject *object) {
   GrexPropertySet *properties = GREX_PROPERTY_SET(object);
   g_clear_pointer(&properties->properties, g_hash_table_unref);  // NOLINT
@@ -36,7 +28,7 @@ grex_property_set_class_init(GrexPropertySetClass *klass) {
 static void
 grex_property_set_init(GrexPropertySet *properties) {
   properties->properties = g_hash_table_new_full(
-      g_str_hash, g_str_equal, g_free, (GDestroyNotify)free_heap_g_value);
+      g_str_hash, g_str_equal, g_free, (GDestroyNotify)grex_value_holder_unref);
 }
 
 /**
@@ -66,19 +58,16 @@ grex_property_set_get_keys(GrexPropertySet *properties) {
 /**
  * grex_property_set_insert:
  * @name: The property name.
- * @value: The property value.
+ * @value: (transfer none): The property value.
  *
  * Inserts the given property ito the set, replacing any previous values if
  * present.
  */
 void
 grex_property_set_insert(GrexPropertySet *properties, const char *name,
-                         const GValue *value) {
-  g_autoptr(GValue) property_value = g_new0(GValue, 1);
-  g_value_init(property_value, G_VALUE_TYPE(value));
-  g_value_copy(value, property_value);
+                         GrexValueHolder *value) {
   g_hash_table_insert(properties->properties, g_strdup(name),
-                      g_steal_pointer(&property_value));
+                      grex_value_holder_ref(value));
 }
 
 /**
@@ -97,28 +86,14 @@ grex_property_set_contains(GrexPropertySet *properties, const char *name) {
 /**
  * grex_property_set_get:
  * @name: The property to get.
- * @value: The #GValue to store the property value in.
  *
- * Searches the property set for the given value, saving it in @value and
- * returning TRUE if found.
+ * Searches the property set for the given value, returning it if found.
  *
- * Returns: TRUE if the property was found.
+ * Returns: (transfer none): The value holder, or NULL if not found.
  */
-gboolean
-grex_property_set_get(GrexPropertySet *properties, const char *name,
-                      GValue *value) {
-  const GValue *property_value =
-      g_hash_table_lookup(properties->properties, name);
-  if (property_value != NULL) {
-    if (G_VALUE_TYPE(value) == G_TYPE_INVALID) {
-      g_value_init(value, G_VALUE_TYPE(property_value));
-    }
-
-    g_value_copy(property_value, value);
-    return TRUE;
-  }
-
-  return FALSE;
+GrexValueHolder *
+grex_property_set_get(GrexPropertySet *properties, const char *name) {
+  return g_hash_table_lookup(properties->properties, name);
 }
 
 /**

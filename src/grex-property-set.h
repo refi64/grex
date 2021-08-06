@@ -5,6 +5,7 @@
 #pragma once
 
 #include "grex-config.h"
+#include "grex-value-holder.h"
 
 G_BEGIN_DECLS
 
@@ -16,11 +17,11 @@ GrexPropertySet *grex_property_set_new();
 
 GList *grex_property_set_get_keys(GrexPropertySet *properties);
 void grex_property_set_insert(GrexPropertySet *properties, const char *name,
-                              const GValue *value);
+                              GrexValueHolder *value);
 gboolean grex_property_set_contains(GrexPropertySet *properties,
                                     const char *name);
-gboolean grex_property_set_get(GrexPropertySet *properties, const char *name,
-                               GValue *value);
+GrexValueHolder *grex_property_set_get(GrexPropertySet *properties,
+                                       const char *name);
 gboolean grex_property_set_remove(GrexPropertySet *properties,
                                   const char *name);
 
