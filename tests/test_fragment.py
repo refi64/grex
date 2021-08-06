@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from gi.repository import GLib, Grex, Gtk
+from gi.repository import GLib, GObject, Grex, Gtk
 import pytest
 
 
@@ -55,6 +55,15 @@ def test_fragment_parsing():
     fragment = Grex.Fragment.parse_xml('<GtkBox/>', -1, 'file')
     assert fragment.get_widget_type() == Gtk.Box.__gtype__
     assert fragment.get_location().get_file() == 'file'
+
+
+def test_fragment_parsing_bindings():
+    fragment = Grex.Fragment.parse_xml('<GtkLabel text="Hello!"/>', -1)
+    assert fragment.get_binding_targets() == ['text']
+
+    value = GObject.Value(str)
+    assert fragment.get_binding('text').evaluate(value)
+    assert value.get_value() == 'Hello!'
 
 
 def test_fragment_parsing_children():

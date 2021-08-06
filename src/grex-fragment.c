@@ -5,6 +5,7 @@
 #include "grex-fragment.h"
 
 #include "gpropz.h"
+#include "grex-binding.h"
 
 /*
  * GrexFragment:
@@ -154,6 +155,19 @@ grex_fragment_parser_start_fragment(GMarkupParseContext *context,
     GrexFragment *parent =
         g_ptr_array_index(data->fragment_stack, data->fragment_stack->len - 1);
     grex_fragment_add_child(parent, fragment);
+  }
+
+  for (; *attribute_names != NULL && *attribute_values != NULL;
+       attribute_names++, attribute_values++) {
+    const char *name = *attribute_names;
+    const char *value = *attribute_values;
+
+    g_autoptr(GrexBindingBuilder) builder = grex_binding_builder_new();
+    grex_binding_builder_add_constant(builder, value);
+
+    g_autoptr(GrexBinding) binding =
+        grex_binding_builder_build(builder, location);
+    grex_fragment_insert_binding(fragment, name, binding);
   }
 
   g_ptr_array_add(data->fragment_stack, fragment);
