@@ -8,6 +8,7 @@
 
 #include "grex-binding.h"
 #include "grex-enums.h"
+#include "grex-fragment-host.h"
 #include "grex-fragment.h"
 #include "grex-property-set.h"
 #include "grex-source-location.h"

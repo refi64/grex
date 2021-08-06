@@ -130,23 +130,6 @@ grex_fragment_host_for_widget(GtkWidget *widget) {
 }
 
 /**
- * grex_fragment_host_create_with_widget:
- * @fragment: The fragment to base this host on.
- *
- * Creates a new #GtkWidget and #GrexFragmentHost, using the widget type and
- * properties located within the given fragment.
- *
- * Returns: (transfer full): A new widget, containing a new fragment host.
- */
-GtkWidget *
-grex_fragment_host_create_with_widget(GrexFragment *fragment) {
-  GType widget_type = grex_fragment_get_widget_type(fragment);
-  GtkWidget *widget = GTK_WIDGET(g_object_new(widget_type, NULL));
-  grex_fragment_host_new(widget);
-  return widget;
-}
-
-/**
  * grex_fragment_host_get_applied_properties:
  *
  * Returns the #GrexPropertySet containing the properties currently applied to

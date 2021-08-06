@@ -18,8 +18,6 @@ GrexFragmentHost *grex_fragment_host_new(GtkWidget *widget);
 
 GrexFragmentHost *grex_fragment_host_for_widget(GtkWidget *widget);
 
-GtkWidget *grex_fragment_host_create_with_widget(GrexFragment *fragment);
-
 GrexPropertySet *
 grex_fragment_host_get_applied_properties(GrexFragmentHost *host);
 GtkWidget *grex_fragment_host_get_widget(GrexFragmentHost *host);
