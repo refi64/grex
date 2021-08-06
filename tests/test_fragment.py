@@ -52,7 +52,7 @@ def test_fragment_children():
 
 
 def test_fragment_parsing():
-    fragment = Grex.Fragment.parse_xml('<GtkBox/>', 'file')
+    fragment = Grex.Fragment.parse_xml('<GtkBox/>', -1, 'file')
     assert fragment.get_widget_type() == Gtk.Box.__gtype__
     assert fragment.get_location().get_file() == 'file'
 
@@ -71,7 +71,7 @@ def test_fragment_parsing_children():
     </GtkBox>
     '''
 
-    root = Grex.Fragment.parse_xml(XML, None, None)
+    root = Grex.Fragment.parse_xml(XML, -1)
     assert root.get_widget_type() == Gtk.Box.__gtype__
 
     [grid, flowbox] = root.get_children()
@@ -88,9 +88,9 @@ def test_fragment_parsing_children():
 
 def test_fragment_parsing_invalid_type():
     with pytest.raises(GLib.GError) as excinfo:
-        Grex.Fragment.parse_xml('<GtkThing/>', None, None)
+        Grex.Fragment.parse_xml('<GtkThing/>', -1)
     assert 'Unknown type: GtkThing' in excinfo.value.message
 
     with pytest.raises(GLib.GError) as excinfo:
-        Grex.Fragment.parse_xml('<GtkFileFilter/>', None, None)
+        Grex.Fragment.parse_xml('<GtkFileFilter/>', -1)
     assert 'is not a GtkWidget subclass' in excinfo.value.message

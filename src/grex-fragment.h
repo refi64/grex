@@ -16,7 +16,8 @@ G_DECLARE_FINAL_TYPE(GrexFragment, grex_fragment, GREX, FRAGMENT, GObject)
 GrexFragment *grex_fragment_new(GType widget_type,
                                 GrexSourceLocation *location);
 
-GrexFragment *grex_fragment_parse_xml(const char *xml, const char *filename,
+GrexFragment *grex_fragment_parse_xml(const char *xml, gssize len,
+                                      const char *filename,
                                       GtkBuilderScope *scope, GError **error);
 
 GType grex_fragment_get_widget_type(GrexFragment *fragment);

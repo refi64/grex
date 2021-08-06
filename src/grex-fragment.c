@@ -176,6 +176,7 @@ grex_fragment_parser_end_fragment(GMarkupParseContext *context,
 /**
  * grex_fragment_parse_xml:
  * @xml: The XML content.
+ * @len: Length of @xml in bytes, or -1 if null-terminated.
  * @filename: (nullable): The filename of the content, used in the resulting
  *                        fragment's source location.
  * @scope: (nullable): The #GtkBuilderScope to resolve type names.
@@ -186,7 +187,7 @@ grex_fragment_parser_end_fragment(GMarkupParseContext *context,
  * Returns: (transfer full): A new fragment.
  */
 GrexFragment *
-grex_fragment_parse_xml(const char *xml, const char *filename,
+grex_fragment_parse_xml(const char *xml, gssize len, const char *filename,
                         GtkBuilderScope *scope, GError **error) {
   GMarkupParser parser = {NULL};
   parser.start_element = grex_fragment_parser_start_fragment;
@@ -205,7 +206,7 @@ grex_fragment_parse_xml(const char *xml, const char *filename,
 
   g_autoptr(GMarkupParseContext) context = g_markup_parse_context_new(
       &parser, G_MARKUP_PREFIX_ERROR_POSITION, &data, NULL);
-  if (!g_markup_parse_context_parse(context, xml, -1, error) ||
+  if (!g_markup_parse_context_parse(context, xml, len, error) ||
       !g_markup_parse_context_end_parse(context, error)) {
     return NULL;
   }
