@@ -30,4 +30,6 @@ gboolean grex_value_holder_can_push(GrexValueHolder *holder);
 void grex_value_holder_disable_push(GrexValueHolder *holder);
 void grex_value_holder_push(GrexValueHolder *value, const GValue *holder);
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(GrexValueHolder, grex_value_holder_unref)
+
 G_END_DECLS

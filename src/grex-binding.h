@@ -6,6 +6,7 @@
 
 #include "grex-config.h"
 #include "grex-source-location.h"
+#include "grex-value-holder.h"
 
 G_BEGIN_DECLS
 
@@ -28,8 +29,7 @@ G_DECLARE_FINAL_TYPE(GrexBinding, grex_binding, GREX, BINDING, GObject)
 GrexBindingType grex_binding_get_binding_type(GrexBinding *binding);
 GrexSourceLocation *grex_binding_get_location(GrexBinding *binding);
 
-gboolean grex_binding_evaluate(GrexBinding *binding, GValue *dest,
-                               GError **error);
+GrexValueHolder *grex_binding_evaluate(GrexBinding *binding, GError **error);
 
 #define GREX_TYPE_BINDING_BUILDER grex_binding_builder_get_type()
 G_DECLARE_FINAL_TYPE(GrexBindingBuilder, grex_binding_builder, GREX,

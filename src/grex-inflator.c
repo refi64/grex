@@ -42,8 +42,8 @@ grex_inflator_evaluate_fragment_property_set(GrexFragment *fragment) {
 
     g_auto(GValue) value = G_VALUE_INIT;
     g_value_init(&value, G_TYPE_STRING);
-
-    if (!grex_binding_evaluate(binding, &value, &error)) {
+    g_autoptr(GrexValueHolder) result = grex_binding_evaluate(binding, &error);
+    if (result == NULL) {
       GrexSourceLocation *location = grex_binding_get_location(binding);
       g_autofree char *location_string = grex_source_location_format(location);
       g_warning("%s: Failed to evaluate binding: %s", location_string,
@@ -51,8 +51,7 @@ grex_inflator_evaluate_fragment_property_set(GrexFragment *fragment) {
       continue;
     }
 
-    grex_property_set_insert(properties, target->data,
-                             grex_value_holder_new(&value));
+    grex_property_set_insert(properties, target->data, result);
   }
 
   return g_steal_pointer(&properties);

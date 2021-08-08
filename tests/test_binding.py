@@ -5,15 +5,9 @@
 from gi.repository import GObject, Grex
 
 
-def _evaluate(binding, ty):
-    value = GObject.Value(ty)
-    binding.evaluate(value)
-    return value.get_value()
-
-
-def _build_and_evaluate(builder, ty):
+def _build_and_evaluate(builder):
     binding = builder.build(Grex.SourceLocation())
-    return _evaluate(binding, ty)
+    return binding.evaluate().get_value()
 
 
 def test_empty_binding():
@@ -21,15 +15,15 @@ def test_empty_binding():
     binding = Grex.BindingBuilder().build(location)
 
     assert binding.get_location() == location
-    assert _evaluate(binding, str) == ''
+    assert binding.evaluate().get_value() == ''
 
 
 def test_constants():
     builder = Grex.BindingBuilder()
     builder.add_constant('ab')
-    assert _build_and_evaluate(builder, str) == 'ab'
+    assert _build_and_evaluate(builder) == 'ab'
 
     builder = Grex.BindingBuilder()
     builder.add_constant('ab')
     builder.add_constant('cd')
-    assert _build_and_evaluate(builder, str) == 'abcd'
+    assert _build_and_evaluate(builder) == 'abcd'

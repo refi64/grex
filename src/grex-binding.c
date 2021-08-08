@@ -107,15 +107,14 @@ GPROPZ_DEFINE_RO(GrexSourceLocation *, GrexBinding, grex_binding, location,
 
 /**
  * grex_binding_evaluate:
- * @value: The value to store the evaluation result in.
  * @error: Return location for a #GError.
  *
- * Evaluates this binding and stores the result in the given #GValue.
+ * Evaluates this binding and returns the resulting value.
  *
- * Returns: TRUE if the evaluation succeeded.
+ * Returns: The resulting value, or NULL on error.
  */
-gboolean
-grex_binding_evaluate(GrexBinding *binding, GValue *value, GError **error) {
+GrexValueHolder *
+grex_binding_evaluate(GrexBinding *binding, GError **error) {
   if (G_UNLIKELY(binding->segments == NULL)) {
     g_warning(
         "GrexBinding instances may only be created via GrexBindingBuilder");
@@ -126,8 +125,6 @@ grex_binding_evaluate(GrexBinding *binding, GValue *value, GError **error) {
     g_warning("Not implemented");
     return FALSE;
   }
-
-  g_return_val_if_fail(G_VALUE_TYPE(value) == G_TYPE_STRING, FALSE);
 
   g_autoptr(GString) result = g_string_new("");
 
@@ -140,8 +137,10 @@ grex_binding_evaluate(GrexBinding *binding, GValue *value, GError **error) {
     }
   }
 
-  g_value_take_string(value, g_string_free(g_steal_pointer(&result), FALSE));
-  return TRUE;
+  g_auto(GValue) value = G_VALUE_INIT;
+  g_value_init(&value, G_TYPE_STRING);
+  g_value_take_string(&value, g_string_free(g_steal_pointer(&result), FALSE));
+  return grex_value_holder_new(&value);
 }
 
 static void
