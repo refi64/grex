@@ -98,4 +98,31 @@ grex_inflator_inflate_existing_widget(GrexInflator *inflator, GtkWidget *widget,
   g_autoptr(GrexPropertySet) properties =
       grex_inflator_evaluate_fragment_property_set(fragment);
   grex_fragment_host_apply_latest_properties(host, properties);
+
+  g_autoptr(GList) children = grex_fragment_get_children(fragment);
+  if (children != NULL) {
+    grex_fragment_host_begin_inflation(host);
+
+    for (GList *child = children; child != NULL; child = child->next) {
+      grex_inflator_inflate_child(inflator, host, (guintptr)child->data,
+                                  child->data);
+    }
+
+    grex_fragment_host_commit_inflation(host);
+  }
+}
+
+void
+grex_inflator_inflate_child(GrexInflator *inflator, GrexFragmentHost *parent,
+                            guintptr key, GrexFragment *child) {
+  GtkWidget *child_widget =
+      grex_fragment_host_get_leftover_child_from_previous_inflation(parent,
+                                                                    key);
+  if (child_widget == NULL) {
+    child_widget = grex_inflator_inflate_new_widget(inflator, child);
+  } else {
+    grex_inflator_inflate_existing_widget(inflator, child_widget, child);
+  }
+
+  grex_fragment_host_add_inflated_child(parent, key, child_widget);
 }

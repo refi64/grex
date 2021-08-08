@@ -14,6 +14,21 @@ struct _GrexFragmentHost {
 
   GrexPropertySet *applied_properties;
   GWeakRef widget;
+
+  gboolean in_inflation;
+
+  // Everything below is inflation-related state:
+
+  // The last child added to this inflation.
+  GtkWidget *last_child;
+  // The child widgets from the previous inflation that have not been added to
+  // the current inflation.
+  GHashTable *leftover_children_by_key;
+
+  // The child widgets currently in the host, or the widgets added to the
+  // current inflation. (This value is set at the end of an inflation and
+  // preserved until the next one begins.)
+  GHashTable *current_children_by_key;
 };
 
 enum {
@@ -46,6 +61,11 @@ static void
 grex_fragment_host_finalize(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
   g_weak_ref_clear(&host->widget);
+
+  g_clear_pointer(&host->leftover_children_by_key,  // NOLINT
+                  g_hash_table_unref);
+  g_clear_pointer(&host->current_children_by_key,  // NOLINT
+                  g_hash_table_unref);
 }
 
 static void
@@ -100,6 +120,12 @@ static void
 grex_fragment_host_init(GrexFragmentHost *host) {
   host->applied_properties = grex_property_set_new();
   g_weak_ref_init(&host->widget, NULL);
+
+  host->current_children_by_key = g_hash_table_new_full(
+      g_direct_hash, g_direct_equal, NULL, g_object_unref);
+  host->leftover_children_by_key = g_hash_table_new_full(
+      g_direct_hash, g_direct_equal, NULL, g_object_unref);
+  host->last_child = NULL;
 }
 
 /**
@@ -219,4 +245,102 @@ grex_fragment_host_apply_latest_properties(GrexFragmentHost *host,
       grex_property_set_remove(host->applied_properties, name);
     }
   }
+}
+
+/**
+ * grex_fragment_host_begin_inflation:
+ *
+ * Begins an inflation "transaction" for this fragment host. The set of children
+ * added to the fragment host before the inflation is committed will be the only
+ * children, in the correct order, once it is committed.
+ */
+void
+grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
+  g_return_if_fail(!host->in_inflation);
+  host->in_inflation = TRUE;
+
+  g_return_if_fail(g_hash_table_size(host->leftover_children_by_key) == 0);
+
+  GHashTable *leftover_children_by_key =
+      g_steal_pointer(&host->leftover_children_by_key);
+  GHashTable *current_children_by_key =
+      g_steal_pointer(&host->current_children_by_key);
+
+  host->leftover_children_by_key = current_children_by_key;
+  // This should have been cleared when the last inflation ended, so this is the
+  // same as setting it to a new GHashTable, except we don't have to re-create
+  // it.
+  host->current_children_by_key = leftover_children_by_key;
+
+  host->last_child = NULL;
+}
+
+/**
+ * grex_fragment_host_get_leftover_child_from_previous_inflation:
+ * @key: The widget's key.
+ *
+ * Finds and returns the widget with the given key from the *previous* inflation
+ * call, but only if another widget with the same key has not been added to the
+ * current inflation.
+ *
+ * May only be called during an inflation.
+ *
+ * Returns: (transfer none): The widget, or NULL if none was found.
+ */
+GtkWidget *
+grex_fragment_host_get_leftover_child_from_previous_inflation(
+    GrexFragmentHost *host, guintptr key) {
+  g_return_val_if_fail(host->in_inflation, NULL);
+  return g_hash_table_lookup(host->leftover_children_by_key, (gpointer)key);
+}
+
+/**
+ * grex_fragment_host_add_inflated_child:
+ * @key: The widget's key.
+ * @child: The child widget.
+ *
+ * Inserts a new child widget into this fragment host with the given key.
+ *
+ * May only be called during an inflation.
+ */
+void
+grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
+                                      GtkWidget *child) {
+  g_return_if_fail(host->in_inflation);
+
+  if (g_hash_table_contains(host->current_children_by_key, (gpointer)key)) {
+    g_warning("Attempted to add child with key '%p' twice", (gpointer)key);
+    return;
+  }
+
+  // Insert it after the last inserted child (or at the front if there is no
+  // last child, which would mean we're still at the front).
+  GtkWidget *parent = grex_fragment_host_get_widget(host);
+  gtk_widget_insert_after(child, parent, host->last_child);
+  host->last_child = child;
+
+  g_hash_table_remove(host->leftover_children_by_key, (gpointer)key);
+  g_hash_table_insert(host->current_children_by_key, (gpointer)key,
+                      g_object_ref(child));
+}
+
+/**
+ * grex_fragment_host_commit_inflation:
+ *
+ * Commits the current inflation.
+ */
+void
+grex_fragment_host_commit_inflation(GrexFragmentHost *host) {
+  g_return_if_fail(host->in_inflation);
+  host->in_inflation = FALSE;
+
+  // Remove all the children that weren't added in this inflation.
+  GHashTableIter iter;
+  gpointer widget;
+  g_hash_table_iter_init(&iter, host->leftover_children_by_key);
+  while (g_hash_table_iter_next(&iter, NULL, &widget)) {
+    gtk_widget_unparent(widget);
+  }
+
+  g_hash_table_remove_all(host->leftover_children_by_key);
 }

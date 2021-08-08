@@ -40,3 +40,65 @@ def test_fragment_host_properties():
     host.apply_latest_properties(properties)
     assert label.get_label() == ''
     assert label.get_wrap()
+
+
+def test_fragment_inflation_children():
+    box = Gtk.Box()
+    host = Grex.FragmentHost.new(box)
+
+    x = Gtk.Label(label='x')
+    y = Gtk.Label(label='y')
+
+    host.begin_inflation()
+    host.add_inflated_child(0, x)
+    assert host.get_leftover_child_from_previous_inflation(0) is None
+    host.commit_inflation()
+
+    assert x.get_parent() == box
+    assert x.get_prev_sibling() is None
+    assert x.get_next_sibling() is None
+
+    host.begin_inflation()
+    assert host.get_leftover_child_from_previous_inflation(0) == x
+    assert host.get_leftover_child_from_previous_inflation(1) is None
+    host.add_inflated_child(0, x)
+    assert host.get_leftover_child_from_previous_inflation(0) is None
+    assert host.get_leftover_child_from_previous_inflation(1) is None
+    host.add_inflated_child(1, y)
+    host.commit_inflation()
+
+    assert x.get_parent() == y.get_parent() == box
+    assert x.get_prev_sibling() is None
+    assert x.get_next_sibling() == y
+    assert y.get_next_sibling() is None
+
+    host.begin_inflation()
+    assert host.get_leftover_child_from_previous_inflation(0) == x
+    assert host.get_leftover_child_from_previous_inflation(1) == y
+    host.add_inflated_child(1, y)
+    assert host.get_leftover_child_from_previous_inflation(0) == x
+    assert host.get_leftover_child_from_previous_inflation(1) is None
+    host.add_inflated_child(0, x)
+    assert host.get_leftover_child_from_previous_inflation(0) is None
+    assert host.get_leftover_child_from_previous_inflation(1) is None
+    host.commit_inflation()
+
+    assert x.get_parent() == y.get_parent() == box
+    assert x.get_prev_sibling() == y
+    assert x.get_next_sibling() is None
+    assert y.get_prev_sibling() is None
+
+    host.begin_inflation()
+    host.add_inflated_child(1, y)
+    host.commit_inflation()
+
+    assert x.get_parent() is None
+    assert y.get_parent() == box
+    assert y.get_prev_sibling() is None
+    assert y.get_next_sibling() is None
+
+    host.begin_inflation()
+    host.commit_inflation()
+
+    assert x.get_parent() is None
+    assert y.get_parent() is None

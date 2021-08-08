@@ -5,6 +5,7 @@
 #pragma once
 
 #include "grex-config.h"
+#include "grex-fragment-host.h"
 #include "grex-fragment.h"
 
 G_BEGIN_DECLS
@@ -19,5 +20,9 @@ GtkWidget *grex_inflator_inflate_new_widget(GrexInflator *inflator,
 void grex_inflator_inflate_existing_widget(GrexInflator *inflator,
                                            GtkWidget *widget,
                                            GrexFragment *fragment);
+
+void grex_inflator_inflate_child(GrexInflator *inflator,
+                                 GrexFragmentHost *parent, guintptr key,
+                                 GrexFragment *child);
 
 G_END_DECLS

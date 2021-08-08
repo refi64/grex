@@ -28,4 +28,13 @@ gboolean grex_fragment_host_matches_fragment_type(GrexFragmentHost *host,
 void grex_fragment_host_apply_latest_properties(GrexFragmentHost *host,
                                                 GrexPropertySet *properties);
 
+void grex_fragment_host_begin_inflation(GrexFragmentHost *host);
+
+GtkWidget *grex_fragment_host_get_leftover_child_from_previous_inflation(
+    GrexFragmentHost *host, guintptr key);
+void grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
+                                           GtkWidget *child);
+
+void grex_fragment_host_commit_inflation(GrexFragmentHost *host);
+
 G_END_DECLS

@@ -15,6 +15,10 @@ def _create_label_fragment():
     return Grex.Fragment.new(Gtk.Label.__gtype__, Grex.SourceLocation())
 
 
+def _create_box_fragment():
+    return Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation())
+
+
 def test_inflate_new_widget():
     inflator = Grex.Inflator()
     fragment = _create_label_fragment()
@@ -37,3 +41,17 @@ def test_inflate_existing_widget():
     fragment.insert_binding('label', _build_constant_binding('world'))
     inflator.inflate_existing_widget(widget, fragment)
     assert widget.get_text() == 'world'
+
+
+def test_inflate_with_children():
+    inflator = Grex.Inflator()
+    fragment = _create_box_fragment()
+    child_fragment = _create_label_fragment()
+    child_fragment.insert_binding('label', _build_constant_binding('hello'))
+    fragment.add_child(child_fragment)
+
+    widget = Gtk.Box()
+    inflator.inflate_existing_widget(widget, fragment)
+
+    assert isinstance(widget.get_first_child(), Gtk.Label)
+    assert widget.get_first_child().get_text() == 'hello'
