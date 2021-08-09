@@ -9,6 +9,85 @@
 G_DEFINE_QUARK("grex-fragment-host-on-widget", grex_fragment_host_on_widget)
 #define GREX_FRAGMENT_HOST_ON_WIDGET (grex_fragment_host_on_widget_quark())
 
+// Manages inflation diffs for a table of values.
+typedef struct {
+  // The values from the previous inflation that have not been added to the
+  // current inflation.
+  GHashTable *leftovers;
+  // The values set in the most recently committed inflation. (This value is
+  // updated at the end of an inflation and preserved until the next one
+  // begins.)
+  GHashTable *current;
+} IncrementalTableDiff;
+
+static void
+incremental_table_diff_init(IncrementalTableDiff *diff, GHashFunc hash_func,
+                            GEqualFunc equal_func,
+                            GDestroyNotify key_destroy_func,
+                            GDestroyNotify value_destroy_func) {
+  diff->leftovers = g_hash_table_new_full(hash_func, equal_func,
+                                          key_destroy_func, value_destroy_func);
+  diff->current = g_hash_table_new_full(hash_func, equal_func, key_destroy_func,
+                                        value_destroy_func);
+}
+
+static void
+incremental_table_diff_begin_inflation(IncrementalTableDiff *diff) {
+  g_return_if_fail(g_hash_table_size(diff->leftovers) == 0);
+
+  GHashTable *leftovers = g_steal_pointer(&diff->leftovers);
+  GHashTable *current = g_steal_pointer(&diff->current);
+
+  diff->leftovers = current;
+  // 'leftovers' should have been cleared when the last inflation ended, so this
+  // is the same as setting it to a new GHashTable, except we don't have to
+  // re-create it.
+  diff->current = leftovers;
+}
+
+static gpointer
+incremental_table_diff_get_leftover_value(IncrementalTableDiff *diff,
+                                          guintptr key) {
+  return g_hash_table_lookup(diff->leftovers, (gpointer)key);
+}
+
+static gboolean
+incremental_table_diff_is_in_current_inflation(IncrementalTableDiff *diff,
+                                               guintptr key) {
+  return g_hash_table_contains(diff->current, (gpointer)key);
+}
+
+static void
+incremental_table_diff_add_to_current_inflation(IncrementalTableDiff *diff,
+                                                guintptr key, gpointer value) {
+  g_hash_table_remove(diff->leftovers, (gpointer)key);
+  g_hash_table_insert(diff->current, (gpointer)key, value);
+}
+
+typedef void (*IncrementalTableDiffRemovalCallback)(gpointer value,
+                                                    gpointer user_data);
+
+static void
+incremental_table_diff_commit_inflation(
+    IncrementalTableDiff *diff, IncrementalTableDiffRemovalCallback callback,
+    gpointer user_data) {
+  // Remove all the values that weren't added in this inflation.
+  GHashTableIter iter;
+  gpointer value;
+  g_hash_table_iter_init(&iter, diff->leftovers);
+  while (g_hash_table_iter_next(&iter, NULL, &value)) {
+    callback(value, user_data);
+  }
+
+  g_hash_table_remove_all(diff->leftovers);
+}
+
+static void
+incremental_table_diff_clear(IncrementalTableDiff *diff) {
+  g_clear_pointer(&diff->leftovers, g_hash_table_unref);  // NOLINT
+  g_clear_pointer(&diff->current, g_hash_table_unref);    // NOLINT
+}
+
 struct _GrexFragmentHost {
   GObject parent_instance;
 
@@ -21,14 +100,8 @@ struct _GrexFragmentHost {
 
   // The last child added to this inflation.
   GtkWidget *last_child;
-  // The child widgets from the previous inflation that have not been added to
-  // the current inflation.
-  GHashTable *leftover_children_by_key;
 
-  // The child widgets currently in the host, or the widgets added to the
-  // current inflation. (This value is set at the end of an inflation and
-  // preserved until the next one begins.)
-  GHashTable *current_children_by_key;
+  IncrementalTableDiff children_diff;
 };
 
 enum {
@@ -62,10 +135,7 @@ grex_fragment_host_finalize(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
   g_weak_ref_clear(&host->widget);
 
-  g_clear_pointer(&host->leftover_children_by_key,  // NOLINT
-                  g_hash_table_unref);
-  g_clear_pointer(&host->current_children_by_key,  // NOLINT
-                  g_hash_table_unref);
+  incremental_table_diff_clear(&host->children_diff);
 }
 
 static void
@@ -121,11 +191,10 @@ grex_fragment_host_init(GrexFragmentHost *host) {
   host->applied_properties = grex_property_set_new();
   g_weak_ref_init(&host->widget, NULL);
 
-  host->current_children_by_key = g_hash_table_new_full(
-      g_direct_hash, g_direct_equal, NULL, g_object_unref);
-  host->leftover_children_by_key = g_hash_table_new_full(
-      g_direct_hash, g_direct_equal, NULL, g_object_unref);
   host->last_child = NULL;
+
+  incremental_table_diff_init(&host->children_diff, g_direct_hash,
+                              g_direct_equal, NULL, g_object_unref);
 }
 
 /**
@@ -259,20 +328,9 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
   g_return_if_fail(!host->in_inflation);
   host->in_inflation = TRUE;
 
-  g_return_if_fail(g_hash_table_size(host->leftover_children_by_key) == 0);
-
-  GHashTable *leftover_children_by_key =
-      g_steal_pointer(&host->leftover_children_by_key);
-  GHashTable *current_children_by_key =
-      g_steal_pointer(&host->current_children_by_key);
-
-  host->leftover_children_by_key = current_children_by_key;
-  // This should have been cleared when the last inflation ended, so this is the
-  // same as setting it to a new GHashTable, except we don't have to re-create
-  // it.
-  host->current_children_by_key = leftover_children_by_key;
-
   host->last_child = NULL;
+
+  incremental_table_diff_begin_inflation(&host->children_diff);
 }
 
 /**
@@ -291,7 +349,7 @@ GtkWidget *
 grex_fragment_host_get_leftover_child_from_previous_inflation(
     GrexFragmentHost *host, guintptr key) {
   g_return_val_if_fail(host->in_inflation, NULL);
-  return g_hash_table_lookup(host->leftover_children_by_key, (gpointer)key);
+  return incremental_table_diff_get_leftover_value(&host->children_diff, key);
 }
 
 /**
@@ -308,7 +366,8 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
                                       GtkWidget *child) {
   g_return_if_fail(host->in_inflation);
 
-  if (g_hash_table_contains(host->current_children_by_key, (gpointer)key)) {
+  if (incremental_table_diff_is_in_current_inflation(&host->children_diff,
+                                                     key)) {
     g_warning("Attempted to add child with key '%p' twice", (gpointer)key);
     return;
   }
@@ -319,9 +378,13 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
   gtk_widget_insert_after(child, parent, host->last_child);
   host->last_child = child;
 
-  g_hash_table_remove(host->leftover_children_by_key, (gpointer)key);
-  g_hash_table_insert(host->current_children_by_key, (gpointer)key,
-                      g_object_ref(child));
+  incremental_table_diff_add_to_current_inflation(&host->children_diff, key,
+                                                  g_object_ref(child));
+}
+
+static void
+unparent_widget_diff_removal_callback(gpointer widget, gpointer user_data) {
+  gtk_widget_unparent(GTK_WIDGET(widget));
 }
 
 /**
@@ -334,13 +397,6 @@ grex_fragment_host_commit_inflation(GrexFragmentHost *host) {
   g_return_if_fail(host->in_inflation);
   host->in_inflation = FALSE;
 
-  // Remove all the children that weren't added in this inflation.
-  GHashTableIter iter;
-  gpointer widget;
-  g_hash_table_iter_init(&iter, host->leftover_children_by_key);
-  while (g_hash_table_iter_next(&iter, NULL, &widget)) {
-    gtk_widget_unparent(widget);
-  }
-
-  g_hash_table_remove_all(host->leftover_children_by_key);
+  incremental_table_diff_commit_inflation(
+      &host->children_diff, unparent_widget_diff_removal_callback, NULL);
 }
