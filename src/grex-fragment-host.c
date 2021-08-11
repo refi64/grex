@@ -5,6 +5,7 @@
 #include "grex-fragment-host.h"
 
 #include "gpropz.h"
+#include "grex-attribute-directive.h"
 
 G_DEFINE_QUARK("grex-fragment-host-on-widget", grex_fragment_host_on_widget)
 #define GREX_FRAGMENT_HOST_ON_WIDGET (grex_fragment_host_on_widget_quark())
@@ -101,6 +102,8 @@ struct _GrexFragmentHost {
   // The last child added to this inflation.
   GtkWidget *last_child;
 
+  IncrementalTableDiff attr_directive_diff;
+  GList *pending_attr_directive_updates;
   IncrementalTableDiff children_diff;
 };
 
@@ -125,17 +128,40 @@ grex_fragment_host_constructed(GObject *object) {
 }
 
 static void
+detach_directive(GrexFragmentHost *host, GrexAttributeDirective *directive) {
+  GrexAttributeDirectiveClass *directive_class =
+      GREX_ATTRIBUTE_DIRECTIVE_GET_CLASS(directive);
+  directive_class->detach(directive, host);
+}
+
+static void
+detach_directives_in_table(GrexFragmentHost *host, GHashTable *table) {
+  GHashTableIter iter;
+  gpointer directive;
+  g_hash_table_iter_init(&iter, table);
+  while (g_hash_table_iter_next(&iter, NULL, &directive)) {
+    detach_directive(host, GREX_ATTRIBUTE_DIRECTIVE(directive));
+  }
+}
+
+static void
 grex_fragment_host_dispose(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
   g_clear_object(&host->applied_properties);  // NOLINT
+
+  detach_directives_in_table(host, host->attr_directive_diff.current);
+  detach_directives_in_table(host, host->attr_directive_diff.leftovers);
+
+  incremental_table_diff_clear(&host->attr_directive_diff);
+  g_clear_pointer(&host->pending_attr_directive_updates,  // NOLINT
+                  g_list_free);
+  incremental_table_diff_clear(&host->children_diff);
 }
 
 static void
 grex_fragment_host_finalize(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
   g_weak_ref_clear(&host->widget);
-
-  incremental_table_diff_clear(&host->children_diff);
 }
 
 static void
@@ -191,8 +217,8 @@ grex_fragment_host_init(GrexFragmentHost *host) {
   host->applied_properties = grex_property_set_new();
   g_weak_ref_init(&host->widget, NULL);
 
-  host->last_child = NULL;
-
+  incremental_table_diff_init(&host->attr_directive_diff, g_direct_hash,
+                              g_direct_equal, NULL, g_object_unref);
   incremental_table_diff_init(&host->children_diff, g_direct_hash,
                               g_direct_equal, NULL, g_object_unref);
 }
@@ -249,8 +275,8 @@ GPROPZ_DEFINE_RO(GtkWidget *, GrexFragmentHost, grex_fragment_host, widget,
  * grex_fragment_host_matches_fragment_type:
  * @fragment: The fragment whose type to check.
  *
- * Determines whether or not the type of this host's widget is identical to the
- * given fragment's widget type.
+ * Determines whether or not the type of this host's widget is identical to
+ * the given fragment's widget type.
  *
  * Returns: TRUE if the type matches.
  */
@@ -319,9 +345,9 @@ grex_fragment_host_apply_latest_properties(GrexFragmentHost *host,
 /**
  * grex_fragment_host_begin_inflation:
  *
- * Begins an inflation "transaction" for this fragment host. The set of children
- * added to the fragment host before the inflation is committed will be the only
- * children, in the correct order, once it is committed.
+ * Begins an inflation "transaction" for this fragment host. The set of
+ * children added to the fragment host before the inflation is committed will
+ * be the only children, in the correct order, once it is committed.
  */
 void
 grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
@@ -330,26 +356,104 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
 
   host->last_child = NULL;
 
+  incremental_table_diff_begin_inflation(&host->attr_directive_diff);
   incremental_table_diff_begin_inflation(&host->children_diff);
 }
 
 /**
- * grex_fragment_host_get_leftover_child_from_previous_inflation:
+ * grex_fragment_host_get_leftover_attribute_directive:
+ * @type: The attribute directive's type.
+ *
+ * Finds and returns the directive with the given key from the *previous*
+ * inflation call, but only if another directive with the same key has not been
+ * added to the current inflation.
+ *
+ * May only be called during an inflation.
+ *
+ * Returns: (transfer none): The directive, or NULL if none was found.
+ */
+GrexAttributeDirective *
+grex_fragment_host_get_leftover_attribute_directive(GrexFragmentHost *host,
+                                                    GType type) {
+  g_return_val_if_fail(host->in_inflation, NULL);
+  return incremental_table_diff_get_leftover_value(&host->attr_directive_diff,
+                                                   type);
+}
+
+/**
+ * grex_fragment_host_get_leftover_child:
  * @key: The widget's key.
  *
- * Finds and returns the widget with the given key from the *previous* inflation
- * call, but only if another widget with the same key has not been added to the
- * current inflation.
+ * Finds and returns the widget with the given key from the *previous*
+ * inflation call, but only if another widget with the same key has not been
+ * added to the current inflation.
  *
  * May only be called during an inflation.
  *
  * Returns: (transfer none): The widget, or NULL if none was found.
  */
 GtkWidget *
-grex_fragment_host_get_leftover_child_from_previous_inflation(
-    GrexFragmentHost *host, guintptr key) {
+grex_fragment_host_get_leftover_child(GrexFragmentHost *host, guintptr key) {
   g_return_val_if_fail(host->in_inflation, NULL);
   return incremental_table_diff_get_leftover_value(&host->children_diff, key);
+}
+
+/**
+ * grex_fragment_host_add_attribute_directive:
+ * @directive: The directive.
+ *
+ * Adds a new attribute directive to this fragment host. The directive's update
+ * method will not be called until
+ * #grex_fragment_host_apply_pending_directive_updates, or the inflation is
+ * committed.
+ *
+ * May only be called during an inflation.
+ */
+void
+grex_fragment_host_add_attribute_directive(GrexFragmentHost *host,
+                                           GrexAttributeDirective *directive) {
+  g_return_if_fail(host->in_inflation);
+
+  GType type = G_OBJECT_TYPE(directive);
+  if (incremental_table_diff_is_in_current_inflation(&host->attr_directive_diff,
+                                                     type)) {
+    g_warning("Attempted to add directive '%s' twice",
+              G_OBJECT_TYPE_NAME(directive));
+    return;
+  }
+
+  if (incremental_table_diff_get_leftover_value(&host->attr_directive_diff,
+                                                type) != directive) {
+    GrexAttributeDirectiveClass *directive_class =
+        GREX_ATTRIBUTE_DIRECTIVE_GET_CLASS(directive);
+    directive_class->attach(directive, host);
+  }
+
+  incremental_table_diff_add_to_current_inflation(
+      &host->attr_directive_diff, type, g_object_ref(directive));
+  host->pending_attr_directive_updates =
+      g_list_prepend(host->pending_attr_directive_updates, directive);
+}
+
+/**
+ * grex_fragment_host_apply_pending_directive_updates:
+ *
+ * Applies any updates pending to inflated directives.
+ */
+void
+grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host) {
+  g_return_if_fail(host->in_inflation);
+
+  g_autoptr(GList) pending =
+      g_steal_pointer(&host->pending_attr_directive_updates);
+  for (GList *directive = pending; directive != NULL;
+       directive = directive->next) {
+    GrexAttributeDirective *attr_directive =
+        GREX_ATTRIBUTE_DIRECTIVE(directive->data);
+    GrexAttributeDirectiveClass *directive_class =
+        GREX_ATTRIBUTE_DIRECTIVE_GET_CLASS(attr_directive);
+    directive_class->update(attr_directive, host);
+  }
 }
 
 /**
@@ -387,16 +491,28 @@ unparent_widget_diff_removal_callback(gpointer widget, gpointer user_data) {
   gtk_widget_unparent(GTK_WIDGET(widget));
 }
 
+static void
+directive_detach_removal_callback(gpointer directive, gpointer user_data) {
+  GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
+  detach_directive(host, GREX_ATTRIBUTE_DIRECTIVE(directive));
+}
+
 /**
  * grex_fragment_host_commit_inflation:
  *
- * Commits the current inflation.
+ * Commits the current inflation. This also applies any outstanding directive
+ * updates.
  */
 void
 grex_fragment_host_commit_inflation(GrexFragmentHost *host) {
   g_return_if_fail(host->in_inflation);
+
+  grex_fragment_host_apply_pending_directive_updates(host);
+
   host->in_inflation = FALSE;
 
+  incremental_table_diff_commit_inflation(
+      &host->attr_directive_diff, directive_detach_removal_callback, host);
   incremental_table_diff_commit_inflation(
       &host->children_diff, unparent_widget_diff_removal_callback, NULL);
 }

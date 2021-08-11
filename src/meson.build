@@ -14,7 +14,9 @@ grex_config_h = configure_file(
 )
 
 grex_sources = [
+  'grex-attribute-directive.c',
   'grex-binding.c',
+  'grex-directive.c',
   'grex-fragment.c',
   'grex-fragment-host.c',
   'grex-inflator.c',
@@ -26,7 +28,9 @@ grex_sources = [
 
 grex_headers = [
   grex_config_h,
+  'grex-attribute-directive.h',
   'grex-binding.h',
+  'grex-directive.h',
   'grex-fragment.h',
   'grex-fragment-host.h',
   'grex-inflator.h',
