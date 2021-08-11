@@ -8,15 +8,3 @@ import gi
 gi.require_version('GLib', '2.0')
 gi.require_version('Grex', '1')
 gi.require_version('Gtk', '4.0')
-
-
-@pytest.fixture(scope='session')
-def Grex():
-    from gi.repository import Grex
-    return Grex
-
-
-@pytest.fixture(scope='session')
-def GLib():
-    from gi.repository import GLib
-    return GLib
