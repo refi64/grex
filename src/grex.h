@@ -7,6 +7,8 @@
 #define _GREX_ALLOW_INDIVIDUAL_HEADERS
 
 #include "grex-binding.h"
+#include "grex-child-property-container-adapter.h"
+#include "grex-container-adapter.h"
 #include "grex-enums.h"
 #include "grex-fragment-host.h"
 #include "grex-fragment.h"
@@ -15,5 +17,6 @@
 #include "grex-source-location.h"
 #include "grex-template.h"
 #include "grex-value-holder.h"
+#include "grex-widget-container-adapter.h"
 
 #undef _GREX_ALLOW_INDIVIDUAL_HEADERS

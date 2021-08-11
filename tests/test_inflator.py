@@ -68,6 +68,8 @@ def test_inflate_with_children():
     fragment.add_child(child_fragment)
 
     widget = Gtk.Box()
+    Grex.FragmentHost.new(widget).set_container_adapter(
+        Grex.WidgetContainerAdapter.new())
     inflator.inflate_existing_widget(widget, fragment)
 
     assert isinstance(widget.get_first_child(), Gtk.Label)

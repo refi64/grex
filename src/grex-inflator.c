@@ -60,6 +60,9 @@ grex_inflator_add_directives(GrexInflator *inflator,
   va_start(va, flags);
   for (;;) {
     GType directive_type = va_arg(va, GType);
+    if (directive_type == 0) {
+      break;
+    }
     g_array_append_val(directives, directive_type);
   }
   va_end(va);

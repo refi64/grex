@@ -94,6 +94,7 @@ struct _GrexFragmentHost {
 
   GrexPropertySet *applied_properties;
   GWeakRef widget;
+  GrexContainerAdapter *container_adapter;
 
   gboolean in_inflation;
 
@@ -110,6 +111,7 @@ struct _GrexFragmentHost {
 enum {
   PROP_APPLIED_PROPERTIES = 1,
   PROP_WIDGET,
+  PROP_CONTAINER_ADAPTER,
   N_PROPS,
 };
 
@@ -148,6 +150,7 @@ static void
 grex_fragment_host_dispose(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
   g_clear_object(&host->applied_properties);  // NOLINT
+  g_clear_object(&host->container_adapter);   // NOLINT
 
   detach_directives_in_table(host, host->attr_directive_diff.current);
   detach_directives_in_table(host, host->attr_directive_diff.leftovers);
@@ -210,6 +213,14 @@ grex_fragment_host_class_init(GrexFragmentHostClass *klass) {
       GTK_TYPE_WIDGET, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
   gpropz_install_property(object_class, GrexFragmentHost, widget, PROP_WIDGET,
                           properties[PROP_WIDGET], &weak_ref_filter);
+
+  properties[PROP_CONTAINER_ADAPTER] = g_param_spec_object(
+      "container-adapter", "Container adapter",
+      "The container adapter used to add children to this widget.",
+      GREX_TYPE_CONTAINER_ADAPTER, G_PARAM_READWRITE);
+  gpropz_install_property(object_class, GrexFragmentHost, container_adapter,
+                          PROP_CONTAINER_ADAPTER,
+                          properties[PROP_CONTAINER_ADAPTER], NULL);
 }
 
 static void
@@ -249,6 +260,23 @@ GrexFragmentHost *
 grex_fragment_host_for_widget(GtkWidget *widget) {
   return g_object_get_qdata(G_OBJECT(widget), GREX_FRAGMENT_HOST_ON_WIDGET);
 }
+
+/**
+ * grex_fragment_host_get_container_adapter:
+ *
+ * Returns the #GrexContainerAdapter used to add children to this widget.
+ *
+ * Returns: (transfer none) (allow-none): The container adapter.
+ */
+
+/**
+ * grex_fragment_host_set_container_adapter:
+ * @adapter: (transfer none) (allow-none): The new container adapter.
+ *
+ * Sets #GrexContainerAdapter used to add children to this widget.
+ */
+GPROPZ_DEFINE_RW(GrexContainerAdapter *, GrexFragmentHost, grex_fragment_host,
+                 container_adapter, properties[PROP_CONTAINER_ADAPTER])
 
 /**
  * grex_fragment_host_get_applied_properties:
@@ -470,6 +498,12 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
                                       GtkWidget *child) {
   g_return_if_fail(host->in_inflation);
 
+  if (host->container_adapter == NULL) {
+    g_warning("Fragment host cannot have children because it has no container "
+              "adapter");
+    return;
+  }
+
   if (incremental_table_diff_is_in_current_inflation(&host->children_diff,
                                                      key)) {
     g_warning("Attempted to add child with key '%p' twice", (gpointer)key);
@@ -479,7 +513,14 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
   // Insert it after the last inserted child (or at the front if there is no
   // last child, which would mean we're still at the front).
   GtkWidget *parent = grex_fragment_host_get_widget(host);
-  gtk_widget_insert_after(child, parent, host->last_child);
+  if (host->last_child == NULL) {
+    grex_container_adapter_insert_at_front(host->container_adapter,
+                                           G_OBJECT(parent), G_OBJECT(child));
+  } else {
+    grex_container_adapter_insert_next_to(host->container_adapter,
+                                          G_OBJECT(parent), G_OBJECT(child),
+                                          G_OBJECT(host->last_child));
+  }
   host->last_child = child;
 
   incremental_table_diff_add_to_current_inflation(&host->children_diff, key,
@@ -487,8 +528,16 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
 }
 
 static void
-unparent_widget_diff_removal_callback(gpointer widget, gpointer user_data) {
-  gtk_widget_unparent(GTK_WIDGET(widget));
+child_diff_removal_callback(gpointer widget, gpointer user_data) {
+  GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
+  g_return_if_fail(host->container_adapter != NULL);
+
+  GtkWidget *parent = grex_fragment_host_get_widget(host);
+
+  // XXX: We should probably also do this on destroy, but will the parent widget
+  // actually still be set because it's in a weakref?
+  grex_container_adapter_remove(host->container_adapter, G_OBJECT(parent),
+                                G_OBJECT(widget));
 }
 
 static void
@@ -513,6 +562,6 @@ grex_fragment_host_commit_inflation(GrexFragmentHost *host) {
 
   incremental_table_diff_commit_inflation(
       &host->attr_directive_diff, directive_detach_removal_callback, host);
-  incremental_table_diff_commit_inflation(
-      &host->children_diff, unparent_widget_diff_removal_callback, NULL);
+  incremental_table_diff_commit_inflation(&host->children_diff,
+                                          child_diff_removal_callback, host);
 }

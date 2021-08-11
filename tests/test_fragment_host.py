@@ -4,7 +4,6 @@
 
 from gi.repository import Grex, Gtk
 from unittest.mock import MagicMock
-import gc
 
 
 class _MockAttributeDirective(Grex.AttributeDirective):
@@ -86,6 +85,7 @@ def test_fragment_host_properties():
 def test_fragment_inflation_children():
     box = Gtk.Box()
     host = Grex.FragmentHost.new(box)
+    host.set_container_adapter(Grex.WidgetContainerAdapter())
 
     x = Gtk.Label(label='x')
     y = Gtk.Label(label='y')

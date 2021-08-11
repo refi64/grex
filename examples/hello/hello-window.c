@@ -23,6 +23,10 @@ hello_window_class_init(HelloWindowClass *klass) {
 static void
 hello_window_init(HelloWindow *window) {
   window->inflator = grex_inflator_new();
+  grex_inflator_add_directives(
+      window->inflator, GREX_INFLATOR_DIRECTIVE_NONE,
+      GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE, NULL);
+
   grex_template_inflate(template, window->inflator, GTK_WIDGET(window));
 }
 

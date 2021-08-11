@@ -5,6 +5,7 @@
 #pragma once
 
 #include "grex-config.h"
+#include "grex-container-adapter.h"
 #include "grex-fragment.h"
 #include "grex-property-set.h"
 
@@ -19,6 +20,11 @@ G_DECLARE_FINAL_TYPE(GrexFragmentHost, grex_fragment_host, GREX, FRAGMENT_HOST,
 GrexFragmentHost *grex_fragment_host_new(GtkWidget *widget);
 
 GrexFragmentHost *grex_fragment_host_for_widget(GtkWidget *widget);
+
+GrexContainerAdapter *
+grex_fragment_host_get_container_adapter(GrexFragmentHost *host);
+void grex_fragment_host_set_container_adapter(GrexFragmentHost *host,
+                                              GrexContainerAdapter *adapter);
 
 GrexPropertySet *
 grex_fragment_host_get_applied_properties(GrexFragmentHost *host);

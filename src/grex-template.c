@@ -5,6 +5,7 @@
 #include "grex-template.h"
 
 #include "gpropz.h"
+#include "grex-widget-container-adapter.h"
 
 struct _GrexTemplate {
   GObject parent_instance;
@@ -131,5 +132,12 @@ GPROPZ_DEFINE_RO(GrexFragment *, GrexTemplate, grex_template, fragment,
 void
 grex_template_inflate(GrexTemplate *template, GrexInflator *inflator,
                       GtkWidget *widget) {
+  if (grex_fragment_host_for_widget(widget) == NULL) {
+    g_autoptr(GrexFragmentHost) host = grex_fragment_host_new(widget);
+    g_autoptr(GrexContainerAdapter) adapter =
+        grex_widget_container_adapter_new();
+    grex_fragment_host_set_container_adapter(host, adapter);
+  }
+
   grex_inflator_inflate_existing_widget(inflator, widget, template->fragment);
 }

@@ -16,6 +16,8 @@ grex_config_h = configure_file(
 grex_sources = [
   'grex-attribute-directive.c',
   'grex-binding.c',
+  'grex-child-property-container-adapter.c',
+  'grex-container-adapter.c',
   'grex-directive.c',
   'grex-fragment.c',
   'grex-fragment-host.c',
@@ -24,12 +26,15 @@ grex_sources = [
   'grex-source-location.c',
   'grex-template.c',
   'grex-value-holder.c',
+  'grex-widget-container-adapter.c',
 ]
 
 grex_headers = [
   grex_config_h,
   'grex-attribute-directive.h',
   'grex-binding.h',
+  'grex-child-property-container-adapter.h',
+  'grex-container-adapter.h',
   'grex-directive.h',
   'grex-fragment.h',
   'grex-fragment-host.h',
@@ -38,6 +43,7 @@ grex_headers = [
   'grex-source-location.h',
   'grex-template.h',
   'grex-value-holder.h',
+  'grex-widget-container-adapter.h',
 ]
 
 grex_args = ['-D_GREX_INTERNAL']
