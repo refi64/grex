@@ -13,7 +13,8 @@ G_BEGIN_DECLS
 typedef struct _GrexValueHolder GrexValueHolder;
 GType grex_value_holder_get_type();
 
-typedef void (*GrexValueHolderPushHandler)(const GValue *new_value);
+typedef void (*GrexValueHolderPushHandler)(const GValue *new_value,
+                                           gpointer user_data);
 
 GrexValueHolder *grex_value_holder_new(const GValue *value);
 

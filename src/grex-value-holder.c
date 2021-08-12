@@ -139,5 +139,5 @@ grex_value_holder_disable_push(GrexValueHolder *holder) {
 void
 grex_value_holder_push(GrexValueHolder *holder, const GValue *value) {
   g_return_if_fail(holder->push_handler.func != NULL);
-  holder->push_handler.func(value);
+  holder->push_handler.func(value, holder->push_handler.data);
 }

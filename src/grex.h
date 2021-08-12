@@ -10,6 +10,7 @@
 #include "grex-child-property-container-adapter.h"
 #include "grex-container-adapter.h"
 #include "grex-enums.h"
+#include "grex-expression.h"
 #include "grex-fragment-host.h"
 #include "grex-fragment.h"
 #include "grex-inflator.h"
