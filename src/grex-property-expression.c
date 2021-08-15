@@ -50,6 +50,42 @@ on_notify_property_changed(GObject *object, GParamSpec *pspec,
 }
 
 typedef struct {
+  GWeakRef object;
+  gulong notify_handler_id;
+  gulong reset_handler_id;
+} ContextResetData;
+
+static void
+reset_signal_handlers(GrexExpressionContext *context, ContextResetData *data) {
+  if (data->notify_handler_id != 0) {
+    g_autoptr(GObject) object = g_weak_ref_get(&data->object);
+    if (object != NULL) {
+      g_signal_handler_disconnect(object, data->notify_handler_id);
+      data->notify_handler_id = 0;
+    }
+  }
+
+  if (data->reset_handler_id != 0 && context != NULL) {
+    g_signal_handler_disconnect(context, data->reset_handler_id);
+    data->reset_handler_id = 0;
+  }
+}
+
+static void
+on_context_reset(GrexExpressionContext *context, gpointer user_data) {
+  ContextResetData *data = user_data;
+  reset_signal_handlers(context, data);
+}
+
+static void
+context_reset_data_free(gpointer user_data, GClosure *closure) {
+  ContextResetData *data = user_data;
+
+  reset_signal_handlers(NULL, data);
+  g_weak_ref_clear(&data->object);
+}
+
+typedef struct {
   GObject *object;
   char *property;
 } PushValueData;
@@ -126,8 +162,15 @@ grex_property_expression_evaluate(GrexExpression *expression,
   if (flags & GREX_EXPRESSION_EVALUATION_TRACK_DEPENDENCIES) {
     g_autofree char *signal =
         g_strdup_printf("notify::%s", property_expression->name);
-    g_signal_connect_object(lookup_target, signal,
-                            G_CALLBACK(on_notify_property_changed), context, 0);
+    gulong handler_id = g_signal_connect_object(
+        lookup_target, signal, G_CALLBACK(on_notify_property_changed), context,
+        0);
+
+    ContextResetData *reset_data = g_new0(ContextResetData, 1);
+    g_weak_ref_init(&reset_data->object, lookup_target);
+    reset_data->notify_handler_id = handler_id;
+    g_signal_connect_data(context, "reset", G_CALLBACK(on_context_reset),
+                          reset_data, context_reset_data_free, 0);
   }
 
   if (flags & GREX_EXPRESSION_EVALUATION_ENABLE_PUSH) {

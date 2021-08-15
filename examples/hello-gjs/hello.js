@@ -1,5 +1,6 @@
 import gi from 'gi'
 
+import GLib from 'gi://GLib'
 import Gio from 'gi://Gio'
 import GIRepository from 'gi://GIRepository'
 import GObject from 'gi://GObject'
@@ -48,15 +49,47 @@ const Grex = gi.require('Grex')
 
 const HelloWindow = GObject.registerClass({
   GTypeName: 'HelloWindow',
+  Properties: {
+    'elapsed': GObject.ParamSpec.int(
+      'elapsed',
+      'Elapsed seconds',
+      'Seconds elapsed since the application start.',
+      GObject.ParamFlags.READWRITE,
+      0
+    ),
+  },
 }, class HelloWindow extends Gtk.ApplicationWindow {
-  static template = Grex.Template.new_from_resource(
-      '/org/hello/Hello/hello-window.xml', null)
+  static template
 
   _init(application) {
     super._init({ application })
 
-    this.inflator = new Grex.Inflator()
-    HelloWindow.template.inflate(this.inflator, this)
+    if (!HelloWindow.template) {
+      HelloWindow.template = Grex.Template.new_from_resource(
+        '/org/hello/Hello/hello-window.xml', null)
+    }
+
+    this.inflator = HelloWindow.template.create_inflator(this)
+    this.inflator.get_base_inflator().add_directives(
+      Grex.InflatorDirectiveFlags.FLAGS_NONE,
+      [Grex.ChildPropertyContainerAdapterDirective])
+    this.inflator.inflate()
+
+    this.timer_source = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {
+      this.elapsed += 1
+      return GLib.SOURCE_CONTINUE
+    })
+  }
+
+  destroy() {
+    if (this.timer_source != 0) {
+      let source = GLib.MainContext.default().find_source_by_id(this.timer_source)
+      if (source !== 0) {
+        source.destroy()
+      }
+
+      this.timer_source = 0
+    }
   }
 })
 

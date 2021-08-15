@@ -75,10 +75,11 @@ grex_expression_init(GrexExpression *expression) {}
  * Returns: (transfer full): TODO
  */
 GrexExpression *
-grex_expression_parse(const char *string, GrexSourceLocation *location,
-                      GError **error) {
+grex_expression_parse(const char *string, gssize len,
+                      GrexSourceLocation *location, GError **error) {
   // TODO: actual parsing
-  return grex_property_expression_new(location, NULL, string);
+  return grex_property_expression_new(
+      location, NULL, len != -1 ? g_strndup(string, len) : g_strdup(string));
 }
 
 /**
@@ -127,18 +128,9 @@ grex_expression_evaluate(GrexExpression *expression,
 void
 grex_set_expression_evaluation_error(GError **error, GrexExpression *expression,
                                      int code, const char *format, ...) {
-  if (error == NULL) {
-    return;
-  }
-
-  g_autofree char *location_string =
-      grex_source_location_format(grex_expression_get_location(expression));
-
   va_list va;
   va_start(va, format);
-  g_autofree char *message = g_strdup_vprintf(format, va);
+  grex_set_located_error_va(error, grex_expression_get_location(expression),
+                            GREX_EXPRESSION_EVALUATION_ERROR, code, format, va);
   va_end(va);
-
-  g_set_error(error, GREX_EXPRESSION_EVALUATION_ERROR, code, "%s: %s",
-              location_string, message);
 }

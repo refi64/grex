@@ -18,6 +18,6 @@ GrexExpressionContext *grex_expression_context_new();
 void grex_expression_context_add_scope(GrexExpressionContext *context,
                                        GObject *scope);
 
-void grex_expression_context_reset_dependencies();
+void grex_expression_context_reset_dependencies(GrexExpressionContext *context);
 
 G_END_DECLS

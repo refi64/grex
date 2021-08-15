@@ -34,7 +34,7 @@ typedef enum {
   GREX_EXPRESSION_EVALUATION_TRACK_DEPENDENCIES = 1 << 1,
 } GrexExpressionEvaluationFlags;
 
-GrexExpression *grex_expression_parse(const char *string,
+GrexExpression *grex_expression_parse(const char *string, gssize len,
                                       GrexSourceLocation *location,
                                       GError **error);
 

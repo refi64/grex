@@ -123,21 +123,15 @@ GPROPZ_DEFINE_RO(GrexFragment *, GrexTemplate, grex_template, fragment,
                  properties[PROP_FRAGMENT])
 
 /**
- * grex_template_inflate:
- * @inflator: The inflator to use to inflate the template.
- * @widget: The widget to inflate this template's fragment into.
+ * grex_template_create_inflator:
+ * @widget: (transfer none): The target widget.
  *
- * Inflates this template's fragment into the given widget.
+ * Creates a new reactive inflator that will inflate this template into the
+ * given widget.
+ *
+ * Returns: (transfer full): The new inflator.
  */
-void
-grex_template_inflate(GrexTemplate *template, GrexInflator *inflator,
-                      GtkWidget *widget) {
-  if (grex_fragment_host_for_widget(widget) == NULL) {
-    g_autoptr(GrexFragmentHost) host = grex_fragment_host_new(widget);
-    g_autoptr(GrexContainerAdapter) adapter =
-        grex_widget_container_adapter_new();
-    grex_fragment_host_set_container_adapter(host, adapter);
-  }
-
-  grex_inflator_inflate_existing_widget(inflator, widget, template->fragment);
+GrexReactiveInflator *
+grex_template_create_inflator(GrexTemplate *template, GtkWidget *widget) {
+  return grex_reactive_inflator_new(template->fragment, widget);
 }

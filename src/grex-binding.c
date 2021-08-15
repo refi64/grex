@@ -7,12 +7,19 @@
 #include "gpropz.h"
 #include "grex-enums.h"
 
-typedef enum { SEGMENT_CONSTANT } SegmentType;
+typedef enum {
+  SEGMENT_CONSTANT,
+  SEGMENT_EXPRESSION,
+} SegmentType;
 
 typedef struct {
   SegmentType type;
   union {
     char *constant;
+    struct {
+      GrexExpression *expression;
+      gboolean is_bidirectional;
+    };
   };
 } Segment;
 
@@ -42,11 +49,18 @@ static GParamSpec *properties[N_PROPS] = {NULL};
 G_DEFINE_TYPE(GrexBinding, grex_binding, G_TYPE_OBJECT)
 G_DEFINE_TYPE(GrexBindingBuilder, grex_binding_builder, G_TYPE_OBJECT)
 
+G_DEFINE_QUARK("grex-binding-parse-error-quark", grex_binding_parse_error)
+G_DEFINE_QUARK("grex-binding-evaluation-error-quark",
+               grex_binding_evaluation_error)
+
 static void
 segment_free(Segment *segment) {
   switch (segment->type) {
   case SEGMENT_CONSTANT:
     g_clear_pointer(&segment->constant, g_free);
+    break;
+  case SEGMENT_EXPRESSION:
+    g_clear_object(&segment->expression);  // NOLINT
     break;
   }
 }
@@ -114,26 +128,89 @@ GPROPZ_DEFINE_RO(GrexSourceLocation *, GrexBinding, grex_binding, location,
  * Returns: The resulting value, or NULL on error.
  */
 GrexValueHolder *
-grex_binding_evaluate(GrexBinding *binding, GError **error) {
+grex_binding_evaluate(GrexBinding *binding, GrexExpressionContext *eval_context,
+                      gboolean track_dependencies, GError **error) {
   if (G_UNLIKELY(binding->segments == NULL)) {
     g_warning(
         "GrexBinding instances may only be created via GrexBindingBuilder");
     return FALSE;
   }
 
-  if (binding->type != GREX_BINDING_TYPE_CONSTANT) {
-    g_warning("Not implemented");
-    return FALSE;
+  GrexExpressionEvaluationFlags flags = 0;
+  if (track_dependencies) {
+    flags |= GREX_EXPRESSION_EVALUATION_TRACK_DEPENDENCIES;
+  }
+
+  if (grex_binding_type_is_expression(binding->type)) {
+    gboolean requires_push = binding->type == GREX_BINDING_TYPE_EXPRESSION_2WAY;
+    if (requires_push) {
+      flags |= GREX_EXPRESSION_EVALUATION_ENABLE_PUSH;
+    }
+
+    g_return_val_if_fail(binding->segments->len == 1, NULL);
+    Segment *first_segment = g_ptr_array_index(binding->segments, 0);
+
+    g_autoptr(GrexValueHolder) result = grex_expression_evaluate(
+        first_segment->expression, eval_context, flags, error);
+    if (result == NULL) {
+      return NULL;
+    }
+
+    if (requires_push) {
+      if (!grex_value_holder_can_push(result)) {
+        grex_set_located_error(error, binding->location,
+                               GREX_BINDING_EVALUATION_ERROR,
+                               GREX_BINDING_EVALUATION_ERROR_NON_BIDIRECTIONAL,
+                               "Binding result must be bidirectional");
+        return NULL;
+      }
+    } else {
+      grex_value_holder_disable_push(result);
+    }
+
+    return g_steal_pointer(&result);
   }
 
   g_autoptr(GString) result = g_string_new("");
 
   for (guint i = 0; i < binding->segments->len; i++) {
     Segment *segment = g_ptr_array_index(binding->segments, i);
+
     switch (segment->type) {
     case SEGMENT_CONSTANT:
       g_string_append(result, segment->constant);
       break;
+    case SEGMENT_EXPRESSION: {
+      g_autoptr(GrexValueHolder) value_holder = grex_expression_evaluate(
+          segment->expression, eval_context, flags, error);
+      if (value_holder == NULL) {
+        return NULL;
+      }
+
+      const GValue *value = grex_value_holder_get_value(value_holder);
+      GType current_type = G_VALUE_TYPE(value);
+      if (current_type != G_TYPE_STRING) {
+        if (!g_value_type_transformable(current_type, G_TYPE_STRING)) {
+          grex_set_located_error(
+              error, binding->location, GREX_BINDING_EVALUATION_ERROR,
+              GREX_BINDING_EVALUATION_ERROR_INVALID_TYPE,
+              "Expression in compound binding must be transformable to a "
+              "string, but type '%s' is not",
+              g_type_name(current_type));
+          return NULL;
+        }
+
+        g_auto(GValue) transformed_value = G_VALUE_INIT;
+        g_value_init(&transformed_value, G_TYPE_STRING);
+        g_value_transform(value, &transformed_value);
+
+        g_string_append(result, g_value_get_string(&transformed_value));
+      } else {
+        g_string_append(result, g_value_get_string(value));
+      }
+
+      break;
+    }
     }
   }
 
@@ -181,17 +258,32 @@ grex_binding_builder_check_not_built(GrexBindingBuilder *builder) {
 /**
  * grex_binding_builder_add_constant:
  * @content: The constant content to add.
+ * @len: Length of @content in bytes, or -1 if null-terminated.
  *
  * Appends a constant string to this builder.
  */
 void
 grex_binding_builder_add_constant(GrexBindingBuilder *builder,
-                                  const char *content) {
+                                  const char *content, gssize len) {
   g_return_if_fail(grex_binding_builder_check_not_built(builder));
 
   Segment *segment = g_new0(Segment, 1);
   segment->type = SEGMENT_CONSTANT;
-  segment->constant = g_strdup(content);
+  segment->constant = len != -1 ? g_strndup(content, len) : g_strdup(content);
+
+  g_ptr_array_add(builder->segments, segment);
+}
+
+void
+grex_binding_builder_add_expression(GrexBindingBuilder *builder,
+                                    GrexExpression *expression,
+                                    gboolean is_bidirectional) {
+  g_return_if_fail(grex_binding_builder_check_not_built(builder));
+
+  Segment *segment = g_new0(Segment, 1);
+  segment->type = SEGMENT_EXPRESSION;
+  segment->expression = g_object_ref(expression);
+  segment->is_bidirectional = is_bidirectional;
 
   g_ptr_array_add(builder->segments, segment);
 }
@@ -218,6 +310,26 @@ grex_binding_builder_build(GrexBindingBuilder *builder,
     switch (first_segment->type) {
     case SEGMENT_CONSTANT:
       type = GREX_BINDING_TYPE_CONSTANT;
+
+      // Multiple constants in a row can still be treated as a constant result.
+      for (guint i = 1; i < builder->segments->len; i++) {
+        Segment *segment = g_ptr_array_index(builder->segments, i);
+        if (segment->type != first_segment->type) {
+          type = GREX_BINDING_TYPE_COMPOUND;
+          break;
+        }
+      }
+      break;
+    case SEGMENT_EXPRESSION:
+      if (builder->segments->len > 1) {
+        // Unlike constants, multiple exprs in a row CANNOT be treated as
+        // non-compound.
+        type = GREX_BINDING_TYPE_COMPOUND;
+      } else {
+        type = first_segment->is_bidirectional
+                   ? GREX_BINDING_TYPE_EXPRESSION_2WAY
+                   : GREX_BINDING_TYPE_EXPRESSION_1WAY;
+      }
       break;
     default:
       g_warning("Unexpected segment type '%d'", first_segment->type);
@@ -237,4 +349,83 @@ grex_binding_builder_build(GrexBindingBuilder *builder,
                                       "location", location, NULL);
   binding->segments = g_steal_pointer(&builder->segments);
   return binding;
+}
+
+static void
+update_location(const char *start, const char *end, int *line, int *col) {
+  for (;;) {
+    const char *newline = memchr(start, '\n', end - start);
+    if (newline == NULL) {
+      break;
+    }
+
+    (*line)++;
+    *col = 0;
+    start = newline + 1;
+  }
+
+  *col += end - start;
+}
+
+/**
+ * grex_binding_parse:
+ * @content: The binding source string.
+ * @location: The binding's source location.
+ * @error: Return location for a #GError.
+ *
+ * Parses the given binding string.
+ *
+ * Returns: (transfer full): The parsed binding, or NULL on error.
+ */
+GrexBinding *
+grex_binding_parse(const char *content, GrexSourceLocation *location,
+                   GError **error) {
+  g_autoptr(GrexBindingBuilder) builder = grex_binding_builder_new();
+
+  int line_offset = 0, col_offset = 0;
+
+  while (*content != '\0') {
+    const char *expr_start = strpbrk(content, "{[");
+    if (expr_start != content) {
+      // Add the constant text in between, then quit out if this was the end.
+      gboolean is_end = expr_start == NULL;
+      grex_binding_builder_add_constant(builder, content,
+                                        is_end ? -1 : expr_start - content);
+      if (is_end) {
+        break;
+      }
+    }
+
+    gboolean is_bidirectional = *expr_start == '{';
+    char closing_bracket = is_bidirectional ? '}' : ']';
+
+    // Move past the opening bracket, so the expression's location info will
+    // point past the bracket.
+    expr_start++;
+
+    update_location(content, expr_start, &line_offset, &col_offset);
+    g_autoptr(GrexSourceLocation) expr_location =
+        grex_source_location_new_offset(location, line_offset, col_offset);
+
+    const char *expr_end = strchr(expr_start, closing_bracket);
+    if (expr_end == NULL) {
+      grex_set_located_error(error, expr_location, GREX_BINDING_PARSE_ERROR,
+                             GREX_BINDING_PARSE_ERROR_MISMATCHED_BRACKET,
+                             "Missing closing bracket '%c'", closing_bracket);
+      return NULL;
+    }
+
+    g_autoptr(GrexExpression) expression = grex_expression_parse(
+        expr_start, expr_end - expr_start, expr_location, error);
+    if (expression == NULL) {
+      return NULL;
+    }
+
+    grex_binding_builder_add_expression(builder, expression, is_bidirectional);
+
+    content = expr_end + 1;
+    update_location(expr_start, content, &line_offset, &col_offset);
+  }
+
+  return grex_binding_builder_build(builder, location);
 }

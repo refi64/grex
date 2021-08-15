@@ -2,5 +2,5 @@
    - https://creativecommons.org/publicdomain/zero/1.0/ -->
 
 <HelloWindow title="Hello, Grex!" grex.child-property-container-adapter="">
-  <GtkLabel label="Hello, world!" />
+  <GtkLabel label="[elapsed] second(s) elapsed" />
 </HelloWindow>

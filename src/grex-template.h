@@ -7,6 +7,7 @@
 #include "grex-config.h"
 #include "grex-fragment.h"
 #include "grex-inflator.h"
+#include "grex-reactive-inflator.h"
 
 #define GREX_TYPE_TEMPLATE grex_template_get_type()
 G_DECLARE_FINAL_TYPE(GrexTemplate, grex_template, GREX, TEMPLATE, GObject)
@@ -21,5 +22,5 @@ GrexTemplate *grex_template_new_from_resource(const char *resource,
 
 GrexFragment *grex_template_get_fragment(GrexTemplate *template);
 
-void grex_template_inflate(GrexTemplate *template, GrexInflator *inflator,
-                           GtkWidget *widget);
+GrexReactiveInflator *grex_template_create_inflator(GrexTemplate *template,
+                                                    GtkWidget *widget);

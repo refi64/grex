@@ -150,3 +150,50 @@ grex_source_location_format(GrexSourceLocation *loc) {
       "%s:%s:%s", loc->file != NULL ? loc->file : "<unknown>",
       line != NULL ? line : "?", column != NULL ? column : "?");
 }
+
+/**
+ * grex_prefix_error_with_location:
+ *
+ * Wrapper over #g_prefix_error that prefixes the error with the given location.
+ */
+void
+grex_prefix_error_with_location(GError **error, GrexSourceLocation *location) {
+  g_autofree char *location_string = grex_source_location_format(location);
+  g_prefix_error(error, "%s: ", location_string);
+}
+
+/**
+ * grex_set_located_error:
+ *
+ * Wrapper over #g_set_error that prefixes the error with the given location.
+ */
+void
+grex_set_located_error(GError **error, GrexSourceLocation *location,
+                       GQuark domain, int code, const char *format, ...) {
+  if (error == NULL) {
+    return;
+  }
+
+  va_list va;
+  va_start(va, format);
+  grex_set_located_error_va(error, location, domain, code, format, va);
+  va_end(va);
+}
+
+/**
+ * grex_set_located_error_va:
+ *
+ * va_list version of #grex_set_located_error.
+ */
+void
+grex_set_located_error_va(GError **error, GrexSourceLocation *location,
+                          GQuark domain, int code, const char *format,
+                          va_list va) {
+  if (error == NULL) {
+    return;
+  }
+
+  g_autofree char *location_string = grex_source_location_format(location);
+  g_autofree char *message = g_strdup_vprintf(format, va);
+  g_set_error(error, domain, code, "%s: %s", location_string, message);
+}

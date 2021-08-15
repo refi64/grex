@@ -16,10 +16,18 @@ typedef enum {
   GREX_INFLATOR_DIRECTIVE_NO_AUTO_ATTACH = 1 << 0,
 } GrexInflatorDirectiveFlags;
 
+typedef enum {
+  GREX_INFLATION_NONE = 0,
+  GREX_INFLATION_TRACK_DEPENDENCIES = 1 << 0,
+} GrexInflationFlags;
+
 #define GREX_TYPE_INFLATOR grex_inflator_get_type()
 G_DECLARE_FINAL_TYPE(GrexInflator, grex_inflator, GREX, INFLATOR, GObject)
 
-GrexInflator *grex_inflator_new();
+GrexInflator *grex_inflator_new(GrexExpressionContext *context);
+GrexInflator *grex_inflator_new_with_scope(GObject *scope);
+
+GrexExpressionContext *grex_inflator_get_context(GrexInflator *inflator);
 
 void grex_inflator_add_directives(GrexInflator *inflator,
                                   GrexInflatorDirectiveFlags flags,
@@ -29,13 +37,15 @@ void grex_inflator_add_directivesv(GrexInflator *inflator,
                                    guint n_directives, GType *directives);
 
 GtkWidget *grex_inflator_inflate_new_widget(GrexInflator *inflator,
-                                            GrexFragment *fragment);
+                                            GrexFragment *fragment,
+                                            GrexInflationFlags flags);
 void grex_inflator_inflate_existing_widget(GrexInflator *inflator,
                                            GtkWidget *widget,
-                                           GrexFragment *fragment);
+                                           GrexFragment *fragment,
+                                           GrexInflationFlags flags);
 
 void grex_inflator_inflate_child(GrexInflator *inflator,
                                  GrexFragmentHost *parent, guintptr key,
-                                 GrexFragment *child);
+                                 GrexFragment *child, GrexInflationFlags flags);
 
 G_END_DECLS

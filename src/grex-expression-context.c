@@ -15,6 +15,7 @@ struct _GrexExpressionContext {
 
 enum {
   SIGNAL_CHANGED = 1,
+  SIGNAL_RESET,
   N_SIGNALS,
 };
 
@@ -37,6 +38,11 @@ grex_expression_context_class_init(GrexExpressionContextClass *klass) {
 
   signals[SIGNAL_CHANGED] =
       g_signal_new("changed", G_TYPE_FROM_CLASS(object_class),
+                   G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                   0, NULL, NULL, NULL, G_TYPE_NONE, 0);
+
+  signals[SIGNAL_RESET] =
+      g_signal_new("reset", G_TYPE_FROM_CLASS(object_class),
                    G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
                    0, NULL, NULL, NULL, G_TYPE_NONE, 0);
 }
@@ -68,6 +74,17 @@ void
 grex_expression_context_add_scope(GrexExpressionContext *context,
                                   GObject *scope) {
   g_ptr_array_add(context->scopes, g_object_ref(scope));
+  grex_expression_context_emit_changed(context);
+}
+
+/**
+ * grex_expression_context_reset_dependencies:
+ *
+ * Resets all the expression dependencies currently emitting "changed" signals.
+ */
+void
+grex_expression_context_reset_dependencies(GrexExpressionContext *context) {
+  g_signal_emit(context, signals[SIGNAL_RESET], 0);
 }
 
 GObject *
@@ -86,5 +103,7 @@ grex_expression_context_find_object_with_property(
 
 void
 grex_expression_context_emit_changed(GrexExpressionContext *context) {
+  g_object_freeze_notify(G_OBJECT(context));
   g_signal_emit(context, signals[SIGNAL_CHANGED], 0);
+  g_object_thaw_notify(G_OBJECT(context));
 }

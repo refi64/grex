@@ -162,11 +162,19 @@ grex_fragment_parser_start_fragment(GMarkupParseContext *context,
     const char *name = *attribute_names;
     const char *value = *attribute_values;
 
-    g_autoptr(GrexBindingBuilder) builder = grex_binding_builder_new();
-    grex_binding_builder_add_constant(builder, value);
+    // GMarkupParser doesn't give us exact attribute location details, so we
+    // just lie about the filename to avoid giving misleading column #s.
+    g_autofree char *binding_location_name = g_strdup_printf("<%s>", name);
+    g_autoptr(GrexSourceLocation) binding_location =
+        grex_source_location_new(binding_location_name, 1, 1);
 
     g_autoptr(GrexBinding) binding =
-        grex_binding_builder_build(builder, location);
+        grex_binding_parse(value, binding_location, error);
+    if (binding == NULL) {
+      grex_prefix_error_with_location(error, location);
+      return;
+    }
+
     grex_fragment_insert_binding(fragment, name, binding);
   }
 

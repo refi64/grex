@@ -7,7 +7,7 @@ from gi.repository import Grex, Gtk
 
 def _build_constant_binding(value):
     builder = Grex.BindingBuilder.new()
-    builder.add_constant(value)
+    builder.add_constant(value, -1)
     return builder.build(Grex.SourceLocation())
 
 
@@ -41,7 +41,7 @@ def test_inflate_new_widget():
     fragment = _create_label_fragment()
     fragment.insert_binding('label', _build_constant_binding('hello'))
 
-    widget = inflator.inflate_new_widget(fragment)
+    widget = inflator.inflate_new_widget(fragment, Grex.InflationFlags.NONE)
     assert isinstance(widget, Gtk.Label)
     assert widget.get_text() == 'hello'
 
@@ -52,11 +52,13 @@ def test_inflate_existing_widget():
     fragment.insert_binding('label', _build_constant_binding('hello'))
 
     widget = Gtk.Label()
-    inflator.inflate_existing_widget(widget, fragment)
+    inflator.inflate_existing_widget(widget, fragment,
+                                     Grex.InflationFlags.NONE)
     assert widget.get_text() == 'hello'
 
     fragment.insert_binding('label', _build_constant_binding('world'))
-    inflator.inflate_existing_widget(widget, fragment)
+    inflator.inflate_existing_widget(widget, fragment,
+                                     Grex.InflationFlags.NONE)
     assert widget.get_text() == 'world'
 
 
@@ -70,7 +72,8 @@ def test_inflate_with_children():
     widget = Gtk.Box()
     Grex.FragmentHost.new(widget).set_container_adapter(
         Grex.WidgetContainerAdapter.new())
-    inflator.inflate_existing_widget(widget, fragment)
+    inflator.inflate_existing_widget(widget, fragment,
+                                     Grex.InflationFlags.NONE)
 
     assert isinstance(widget.get_first_child(), Gtk.Label)
     assert widget.get_first_child().get_text() == 'hello'
@@ -84,7 +87,8 @@ def test_inflate_with_attribute_directives():
     fragment.insert_binding('test.hello-label', _build_constant_binding(''))
 
     widget = Gtk.Label()
-    inflator.inflate_existing_widget(widget, fragment)
+    inflator.inflate_existing_widget(widget, fragment,
+                                     Grex.InflationFlags.NONE)
 
     assert widget.get_text() == 'hello'
 
@@ -96,6 +100,7 @@ def test_inflate_with_auto_attribute_directives():
     fragment = _create_label_fragment()
 
     widget = Gtk.Label()
-    inflator.inflate_existing_widget(widget, fragment)
+    inflator.inflate_existing_widget(widget, fragment,
+                                     Grex.InflationFlags.NONE)
 
     assert widget.get_text() == 'auto'

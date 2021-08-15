@@ -4,15 +4,25 @@
 
 #include "grex-inflator.h"
 
+#include "gpropz.h"
 #include "grex-fragment-host.h"
 #include "grex-property-set.h"
 
 struct _GrexInflator {
   GObject parent_instance;
 
+  GrexExpressionContext *context;
+
   GHashTable *directive_types;
   GHashTable *auto_directive_names;
 };
+
+enum {
+  PROP_CONTEXT = 1,
+  N_PROPS,
+};
+
+static GParamSpec *properties[N_PROPS] = {NULL};
 
 G_DEFINE_TYPE(GrexInflator, grex_inflator, G_TYPE_OBJECT)
 
@@ -30,6 +40,15 @@ grex_inflator_class_init(GrexInflatorClass *klass) {
   GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
   object_class->finalize = grex_inflator_finalize;
+
+  gpropz_class_init_property_functions(object_class);
+
+  properties[PROP_CONTEXT] = g_param_spec_object(
+      "context", "Evaluation context",
+      "The context used to evaluation expressions.",
+      GREX_TYPE_EXPRESSION_CONTEXT, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
+  gpropz_install_property(object_class, GrexInflator, context, PROP_CONTEXT,
+                          properties[PROP_CONTEXT], NULL);
 }
 
 static void
@@ -41,15 +60,42 @@ grex_inflator_init(GrexInflator *inflator) {
 
 /**
  * grex_inflator_new:
+ * @context: The context used to evaluate expressions.
  *
  * Creates a new #GrexInflator.
  *
  * Returns: (transfer full): A new inflator.
  */
 GrexInflator *
-grex_inflator_new() {
-  return g_object_new(GREX_TYPE_INFLATOR, NULL);
+grex_inflator_new(GrexExpressionContext *context) {
+  return g_object_new(GREX_TYPE_INFLATOR, "context", context, NULL);
 }
+
+/**
+ * grex_inflator_new_with_scope:
+ * @scope: The scope to look up expression values in.
+ *
+ * Creates a new #GrexInflator, creating a new #GrexExpressionContext with the
+ * given scope in the process.
+ *
+ * Returns: (transfer full): A new inflator.
+ */
+GrexInflator *
+grex_inflator_new_with_scope(GObject *scope) {
+  g_autoptr(GrexExpressionContext) context = grex_expression_context_new();
+  grex_expression_context_add_scope(context, scope);
+  return grex_inflator_new(context);
+}
+
+/**
+ * grex_inflator_get_context:
+ *
+ * Returns the expression context used to evaluate bindings.
+ *
+ * Returns: (transfer none): The expression context.
+ */
+GPROPZ_DEFINE_RO(GrexExpressionContext *, GrexInflator, grex_inflator, context,
+                 properties[PROP_CONTEXT])
 
 void
 grex_inflator_add_directives(GrexInflator *inflator,
@@ -100,7 +146,8 @@ grex_inflator_add_directivesv(GrexInflator *inflator,
 
 static GrexPropertySet *
 grex_inflator_evaluate_fragment_property_set(GrexInflator *inflator,
-                                             GrexFragment *fragment) {
+                                             GrexFragment *fragment,
+                                             gboolean track_dependencies) {
   g_autoptr(GrexPropertySet) properties = grex_property_set_new();
   g_autoptr(GList) targets = grex_fragment_get_binding_targets(fragment);
 
@@ -115,9 +162,10 @@ grex_inflator_evaluate_fragment_property_set(GrexInflator *inflator,
 
     g_auto(GValue) value = G_VALUE_INIT;
     g_value_init(&value, G_TYPE_STRING);
-    g_autoptr(GrexValueHolder) result = grex_binding_evaluate(binding, &error);
+    g_autoptr(GrexValueHolder) result = grex_binding_evaluate(
+        binding, inflator->context, track_dependencies, &error);
     if (result == NULL) {
-      GrexSourceLocation *location = grex_binding_get_location(binding);
+      GrexSourceLocation *location = grex_fragment_get_location(fragment);
       g_autofree char *location_string = grex_source_location_format(location);
       g_warning("%s: Failed to evaluate binding: %s", location_string,
                 error->message);
@@ -210,14 +258,14 @@ grex_inflator_apply_directives(GrexInflator *inflator, GrexFragmentHost *host,
  * Returns: (transfer full): The newly created widget.
  */
 GtkWidget *
-grex_inflator_inflate_new_widget(GrexInflator *inflator,
-                                 GrexFragment *fragment) {
+grex_inflator_inflate_new_widget(GrexInflator *inflator, GrexFragment *fragment,
+                                 GrexInflationFlags flags) {
   GType widget_type = grex_fragment_get_widget_type(fragment);
   g_return_val_if_fail(g_type_is_a(widget_type, GTK_TYPE_WIDGET), NULL);
 
   // TODO: handle construct-only properties.
   GtkWidget *widget = GTK_WIDGET(g_object_new(widget_type, NULL));
-  grex_inflator_inflate_existing_widget(inflator, widget, fragment);
+  grex_inflator_inflate_existing_widget(inflator, widget, fragment, flags);
   return widget;
 }
 
@@ -230,7 +278,8 @@ grex_inflator_inflate_new_widget(GrexInflator *inflator,
  */
 void
 grex_inflator_inflate_existing_widget(GrexInflator *inflator, GtkWidget *widget,
-                                      GrexFragment *fragment) {
+                                      GrexFragment *fragment,
+                                      GrexInflationFlags flags) {
   g_autoptr(GrexFragmentHost) host = grex_fragment_host_for_widget(widget);
   if (host == NULL) {
     host = grex_fragment_host_new(widget);
@@ -240,7 +289,8 @@ grex_inflator_inflate_existing_widget(GrexInflator *inflator, GtkWidget *widget,
   }
 
   g_autoptr(GrexPropertySet) properties =
-      grex_inflator_evaluate_fragment_property_set(inflator, fragment);
+      grex_inflator_evaluate_fragment_property_set(
+          inflator, fragment, flags & GREX_INFLATION_TRACK_DEPENDENCIES);
   grex_fragment_host_apply_latest_properties(host, properties);
 
   grex_fragment_host_begin_inflation(host);
@@ -250,7 +300,7 @@ grex_inflator_inflate_existing_widget(GrexInflator *inflator, GtkWidget *widget,
   g_autoptr(GList) children = grex_fragment_get_children(fragment);
   for (GList *child = children; child != NULL; child = child->next) {
     grex_inflator_inflate_child(inflator, host, (guintptr)child->data,
-                                child->data);
+                                child->data, flags);
   }
 
   grex_fragment_host_commit_inflation(host);
@@ -258,12 +308,13 @@ grex_inflator_inflate_existing_widget(GrexInflator *inflator, GtkWidget *widget,
 
 void
 grex_inflator_inflate_child(GrexInflator *inflator, GrexFragmentHost *parent,
-                            guintptr key, GrexFragment *child) {
+                            guintptr key, GrexFragment *child,
+                            GrexInflationFlags flags) {
   GtkWidget *child_widget = grex_fragment_host_get_leftover_child(parent, key);
   if (child_widget == NULL) {
-    child_widget = grex_inflator_inflate_new_widget(inflator, child);
+    child_widget = grex_inflator_inflate_new_widget(inflator, child, flags);
   } else {
-    grex_inflator_inflate_existing_widget(inflator, child_widget, child);
+    grex_inflator_inflate_existing_widget(inflator, child_widget, child, flags);
   }
 
   grex_fragment_host_add_inflated_child(parent, key, child_widget);

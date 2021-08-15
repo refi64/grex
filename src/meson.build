@@ -26,6 +26,7 @@ grex_sources = [
   'grex-inflator.c',
   'grex-property-expression.c',
   'grex-property-set.c',
+  'grex-reactive-inflator.c',
   'grex-source-location.c',
   'grex-template.c',
   'grex-value-holder.c',
@@ -45,6 +46,7 @@ grex_headers = [
   'grex-fragment-host.h',
   'grex-inflator.h',
   'grex-property-set.h',
+  'grex-reactive-inflator.h',
   'grex-source-location.h',
   'grex-template.h',
   'grex-value-holder.h',
@@ -90,4 +92,4 @@ grex_gir = gnome.generate_gir(
 )
 
 g_grex_build_dir = meson.current_build_dir()
-g_grex_typelib = grex_gir[0]
+g_grex_typelib = grex_gir[1]
