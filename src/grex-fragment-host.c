@@ -65,7 +65,8 @@ incremental_table_diff_add_to_current_inflation(IncrementalTableDiff *diff,
   g_hash_table_insert(diff->current, (gpointer)key, value);
 }
 
-typedef void (*IncrementalTableDiffRemovalCallback)(gpointer value,
+typedef void (*IncrementalTableDiffRemovalCallback)(gpointer key,
+                                                    gpointer value,
                                                     gpointer user_data);
 
 static void
@@ -74,10 +75,10 @@ incremental_table_diff_commit_inflation(
     gpointer user_data) {
   // Remove all the values that weren't added in this inflation.
   GHashTableIter iter;
-  gpointer value;
+  gpointer key, value;
   g_hash_table_iter_init(&iter, diff->leftovers);
-  while (g_hash_table_iter_next(&iter, NULL, &value)) {
-    callback(value, user_data);
+  while (g_hash_table_iter_next(&iter, &key, &value)) {
+    callback(key, value, user_data);
   }
 
   g_hash_table_remove_all(diff->leftovers);
@@ -92,7 +93,6 @@ incremental_table_diff_clear(IncrementalTableDiff *diff) {
 struct _GrexFragmentHost {
   GObject parent_instance;
 
-  GrexPropertySet *applied_properties;
   GWeakRef target;
   GrexContainerAdapter *container_adapter;
 
@@ -103,6 +103,7 @@ struct _GrexFragmentHost {
   // The last child added to this inflation.
   GObject *last_child;
 
+  IncrementalTableDiff property_diff;
   IncrementalTableDiff attr_directive_diff;
   GList *pending_attr_directive_updates;
   IncrementalTableDiff children_diff;
@@ -149,12 +150,12 @@ detach_directives_in_table(GrexFragmentHost *host, GHashTable *table) {
 static void
 grex_fragment_host_dispose(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
-  g_clear_object(&host->applied_properties);  // NOLINT
-  g_clear_object(&host->container_adapter);   // NOLINT
+  g_clear_object(&host->container_adapter);  // NOLINT
 
   detach_directives_in_table(host, host->attr_directive_diff.current);
   detach_directives_in_table(host, host->attr_directive_diff.leftovers);
 
+  incremental_table_diff_clear(&host->property_diff);
   incremental_table_diff_clear(&host->attr_directive_diff);
   g_clear_pointer(&host->pending_attr_directive_updates,  // NOLINT
                   g_list_free);
@@ -200,14 +201,6 @@ grex_fragment_host_class_init(GrexFragmentHostClass *klass) {
 
   gpropz_class_init_property_functions(object_class);
 
-  properties[PROP_APPLIED_PROPERTIES] = g_param_spec_object(
-      "applied-properties", "Applied properties",
-      "The set of properties currently applied to this host's target.",
-      GREX_TYPE_PROPERTY_SET, G_PARAM_READABLE);
-  gpropz_install_property(object_class, GrexFragmentHost, applied_properties,
-                          PROP_APPLIED_PROPERTIES,
-                          properties[PROP_APPLIED_PROPERTIES], NULL);
-
   properties[PROP_TARGET] = g_param_spec_object(
       "target", "Target",
       "The target object this fragment host is controlling.", G_TYPE_OBJECT,
@@ -226,9 +219,10 @@ grex_fragment_host_class_init(GrexFragmentHostClass *klass) {
 
 static void
 grex_fragment_host_init(GrexFragmentHost *host) {
-  host->applied_properties = grex_property_set_new();
   g_weak_ref_init(&host->target, NULL);
 
+  incremental_table_diff_init(&host->property_diff, g_str_hash, g_str_equal,
+                              g_free, (GDestroyNotify)grex_value_holder_unref);
   incremental_table_diff_init(&host->attr_directive_diff, g_direct_hash,
                               g_direct_equal, NULL, g_object_unref);
   incremental_table_diff_init(&host->children_diff, g_direct_hash,
@@ -280,17 +274,6 @@ GPROPZ_DEFINE_RW(GrexContainerAdapter *, GrexFragmentHost, grex_fragment_host,
                  container_adapter, properties[PROP_CONTAINER_ADAPTER])
 
 /**
- * grex_fragment_host_get_applied_properties:
- *
- * Returns the #GrexPropertySet containing the properties currently applied to
- * this host's target.
- *
- * Returns: (transfer none): The applied properties.
- */
-GPROPZ_DEFINE_RO(GrexPropertySet *, GrexFragmentHost, grex_fragment_host,
-                 applied_properties, properties[PROP_APPLIED_PROPERTIES])
-
-/**
  * grex_fragment_host_get_target:
  *
  * Returns the #GObject that owns and is controlled by this fragment host.
@@ -317,59 +300,6 @@ grex_fragment_host_matches_fragment_type(GrexFragmentHost *host,
   return type == grex_fragment_get_target_type(fragment);
 }
 
-static void
-update_properties_by_name(GrexFragmentHost *host, GObject *target,
-                          GrexPropertySet *properties, GList *names) {
-  for (; names != NULL; names = names->next) {
-    const char *name = names->data;
-
-    GrexValueHolder *value = grex_property_set_get(properties, name);
-    g_warn_if_fail(value != NULL);
-    g_object_set_property(target, name, grex_value_holder_get_value(value));
-
-    grex_property_set_insert(host->applied_properties, name, value);
-  }
-}
-
-/**
- * grex_fragment_host_apply_latest_properties:
- * @properties: The set of properties to apply.
- *
- * Determines the difference between the given property set and the host's
- * current applied properties (i.e. what values were added, removed, or
- * changed), and updates the target and applied properties to match the given
- * property set.
- */
-void
-grex_fragment_host_apply_latest_properties(GrexFragmentHost *host,
-                                           GrexPropertySet *properties) {
-  g_autoptr(GList) added = NULL;
-  g_autoptr(GList) removed = NULL;
-  g_autoptr(GList) kept = NULL;
-
-  GObject *target = grex_fragment_host_get_target(host);
-
-  grex_property_set_diff_keys(host->applied_properties, properties, &added,
-                              &removed, &kept);
-
-  update_properties_by_name(host, target, properties, added);
-  update_properties_by_name(host, target, properties, kept);
-
-  if (removed != NULL) {
-    GObjectClass *object_class = G_OBJECT_GET_CLASS(target);
-
-    for (GList *names = removed; names != NULL; names = names->next) {
-      const char *name = names->data;
-
-      GParamSpec *pspec = g_object_class_find_property(object_class, name);
-      const GValue *default_value = g_param_spec_get_default_value(pspec);
-      g_object_set_property(target, name, default_value);
-
-      grex_property_set_remove(host->applied_properties, name);
-    }
-  }
-}
-
 /**
  * grex_fragment_host_begin_inflation:
  *
@@ -384,6 +314,7 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
 
   host->last_child = NULL;
 
+  incremental_table_diff_begin_inflation(&host->property_diff);
   incremental_table_diff_begin_inflation(&host->attr_directive_diff);
   incremental_table_diff_begin_inflation(&host->children_diff);
 }
@@ -424,6 +355,33 @@ GObject *
 grex_fragment_host_get_leftover_child(GrexFragmentHost *host, guintptr key) {
   g_return_val_if_fail(host->in_inflation, NULL);
   return incremental_table_diff_get_leftover_value(&host->children_diff, key);
+}
+
+/**
+ * grex_fragment_host_add_property:
+ * @name: The property name.
+ * @value: The new value.
+ *
+ * Adds a new property assignment to this fragment and assigns it on the target
+ * object.
+ *
+ * May only be called during an inflation.
+ */
+void
+grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
+                                GrexValueHolder *value) {
+  g_return_if_fail(host->in_inflation);
+
+  // NOTE: We don't bother checking if this is in the current inflation, since
+  // overwriting properties is an entirely valid use case.
+
+  GObject *target = grex_fragment_host_get_target(host);
+  // TODO: only update if changed?
+  g_object_set_property(target, name, grex_value_holder_get_value(value));
+
+  incremental_table_diff_add_to_current_inflation(&host->property_diff,
+                                                  (guintptr)g_strdup(name),
+                                                  grex_value_holder_ref(value));
 }
 
 /**
@@ -525,7 +483,20 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
 }
 
 static void
-child_diff_removal_callback(gpointer child, gpointer user_data) {
+property_diff_removal_callback(gpointer name, gpointer value,
+                               gpointer user_data) {
+  GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
+
+  GObject *target = grex_fragment_host_get_target(host);
+  GObjectClass *object_class = G_OBJECT_GET_CLASS(target);
+
+  GParamSpec *pspec = g_object_class_find_property(object_class, name);
+  const GValue *default_value = g_param_spec_get_default_value(pspec);
+  g_object_set_property(target, name, default_value);
+}
+
+static void
+child_diff_removal_callback(gpointer key, gpointer child, gpointer user_data) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
   g_return_if_fail(host->container_adapter != NULL);
 
@@ -537,7 +508,8 @@ child_diff_removal_callback(gpointer child, gpointer user_data) {
 }
 
 static void
-directive_detach_removal_callback(gpointer directive, gpointer user_data) {
+directive_detach_removal_callback(gpointer key, gpointer directive,
+                                  gpointer user_data) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
   detach_directive(host, GREX_ATTRIBUTE_DIRECTIVE(directive));
 }
@@ -556,6 +528,8 @@ grex_fragment_host_commit_inflation(GrexFragmentHost *host) {
 
   host->in_inflation = FALSE;
 
+  incremental_table_diff_commit_inflation(&host->property_diff,
+                                          property_diff_removal_callback, host);
   incremental_table_diff_commit_inflation(
       &host->attr_directive_diff, directive_detach_removal_callback, host);
   incremental_table_diff_commit_inflation(&host->children_diff,

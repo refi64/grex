@@ -7,7 +7,6 @@
 #include "grex-config.h"
 #include "grex-container-adapter.h"
 #include "grex-fragment.h"
-#include "grex-property-set.h"
 
 G_BEGIN_DECLS
 
@@ -26,17 +25,15 @@ grex_fragment_host_get_container_adapter(GrexFragmentHost *host);
 void grex_fragment_host_set_container_adapter(GrexFragmentHost *host,
                                               GrexContainerAdapter *adapter);
 
-GrexPropertySet *
-grex_fragment_host_get_applied_properties(GrexFragmentHost *host);
 GObject *grex_fragment_host_get_target(GrexFragmentHost *host);
 
 gboolean grex_fragment_host_matches_fragment_type(GrexFragmentHost *host,
                                                   GrexFragment *fragment);
 
-void grex_fragment_host_apply_latest_properties(GrexFragmentHost *host,
-                                                GrexPropertySet *properties);
-
 void grex_fragment_host_begin_inflation(GrexFragmentHost *host);
+
+void grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
+                                     GrexValueHolder *value);
 
 GrexAttributeDirective *
 grex_fragment_host_get_leftover_attribute_directive(GrexFragmentHost *host,

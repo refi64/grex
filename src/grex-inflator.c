@@ -6,7 +6,6 @@
 
 #include "gpropz.h"
 #include "grex-fragment-host.h"
-#include "grex-property-set.h"
 
 struct _GrexInflator {
   GObject parent_instance;
@@ -163,15 +162,15 @@ grex_inflator_add_directivesv(GrexInflator *inflator,
   }
 }
 
-static GrexPropertySet *
-grex_inflator_evaluate_fragment_property_set(GrexInflator *inflator,
-                                             GrexFragment *fragment,
-                                             gboolean track_dependencies) {
-  g_autoptr(GrexPropertySet) properties = grex_property_set_new();
+static void
+grex_inflator_apply_properties(GrexInflator *inflator, GrexFragmentHost *host,
+                               GrexFragment *fragment,
+                               gboolean track_dependencies) {
   g_autoptr(GList) targets = grex_fragment_get_binding_targets(fragment);
 
   for (GList *target = targets; target != NULL; target = target->next) {
-    if (g_hash_table_contains(inflator->directive_factories, target->data)) {
+    const char *name = target->data;
+    if (g_hash_table_contains(inflator->directive_factories, name)) {
       // Skip it, it's a directive that is handled separately.
       continue;
     }
@@ -179,8 +178,6 @@ grex_inflator_evaluate_fragment_property_set(GrexInflator *inflator,
     g_autoptr(GError) error = NULL;
     GrexBinding *binding = grex_fragment_get_binding(fragment, target->data);
 
-    g_auto(GValue) value = G_VALUE_INIT;
-    g_value_init(&value, G_TYPE_STRING);
     g_autoptr(GrexValueHolder) result = grex_binding_evaluate(
         binding, inflator->context, track_dependencies, &error);
     if (result == NULL) {
@@ -191,10 +188,8 @@ grex_inflator_evaluate_fragment_property_set(GrexInflator *inflator,
       continue;
     }
 
-    grex_property_set_insert(properties, target->data, result);
+    grex_fragment_host_add_property(host, name, result);
   }
-
-  return g_steal_pointer(&properties);
 }
 
 static void
@@ -303,13 +298,10 @@ grex_inflator_inflate_existing_target(GrexInflator *inflator, GObject *target,
     g_return_if_fail(grex_fragment_host_matches_fragment_type(host, fragment));
   }
 
-  g_autoptr(GrexPropertySet) properties =
-      grex_inflator_evaluate_fragment_property_set(
-          inflator, fragment, flags & GREX_INFLATION_TRACK_DEPENDENCIES);
-  grex_fragment_host_apply_latest_properties(host, properties);
-
   grex_fragment_host_begin_inflation(host);
 
+  grex_inflator_apply_properties(inflator, host, fragment,
+                                 flags & GREX_INFLATION_TRACK_DEPENDENCIES);
   grex_inflator_apply_directives(inflator, host, fragment);
 
   g_autoptr(GList) children = grex_fragment_get_children(fragment);
