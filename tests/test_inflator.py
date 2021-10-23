@@ -21,7 +21,7 @@ def _create_box_fragment():
 
 class _HelloLabelAttributeDirective(Grex.AttributeDirective):
     def do_update(self, host):
-        host.get_widget().set_text('hello')
+        host.get_target().set_text('hello')
 
 
 class _HelloLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
@@ -34,7 +34,7 @@ class _HelloLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
 
 class _AutoLabelAttributeDirective(Grex.AttributeDirective):
     def do_update(self, host):
-        host.get_widget().set_text('auto')
+        host.get_target().set_text('auto')
 
 
 class _AutoLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
@@ -45,33 +45,33 @@ class _AutoLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
         return _AutoLabelAttributeDirective()
 
     def do_should_auto_attach(self, host, fragment):
-        return isinstance(host.get_widget(), Gtk.Label)
+        return isinstance(host.get_target(), Gtk.Label)
 
 
-def test_inflate_new_widget():
+def test_inflate_new_target():
     inflator = Grex.Inflator()
     fragment = _create_label_fragment()
     fragment.insert_binding('label', _build_constant_binding('hello'))
 
-    widget = inflator.inflate_new_widget(fragment, Grex.InflationFlags.NONE)
-    assert isinstance(widget, Gtk.Label)
-    assert widget.get_text() == 'hello'
+    target = inflator.inflate_new_target(fragment, Grex.InflationFlags.NONE)
+    assert isinstance(target, Gtk.Label)
+    assert target.get_text() == 'hello'
 
 
-def test_inflate_existing_widget():
+def test_inflate_existing_target():
     inflator = Grex.Inflator()
     fragment = _create_label_fragment()
     fragment.insert_binding('label', _build_constant_binding('hello'))
 
-    widget = Gtk.Label()
-    inflator.inflate_existing_widget(widget, fragment,
+    target = Gtk.Label()
+    inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
-    assert widget.get_text() == 'hello'
+    assert target.get_text() == 'hello'
 
     fragment.insert_binding('label', _build_constant_binding('world'))
-    inflator.inflate_existing_widget(widget, fragment,
+    inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
-    assert widget.get_text() == 'world'
+    assert target.get_text() == 'world'
 
 
 def test_inflate_with_children():
@@ -81,14 +81,14 @@ def test_inflate_with_children():
     child_fragment.insert_binding('label', _build_constant_binding('hello'))
     fragment.add_child(child_fragment)
 
-    widget = Gtk.Box()
-    Grex.FragmentHost.new(widget).set_container_adapter(
+    target = Gtk.Box()
+    Grex.FragmentHost.new(target).set_container_adapter(
         Grex.WidgetContainerAdapter.new())
-    inflator.inflate_existing_widget(widget, fragment,
+    inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
 
-    assert isinstance(widget.get_first_child(), Gtk.Label)
-    assert widget.get_first_child().get_text() == 'hello'
+    assert isinstance(target.get_first_child(), Gtk.Label)
+    assert target.get_first_child().get_text() == 'hello'
 
 
 def test_inflate_with_attribute_directives():
@@ -98,11 +98,11 @@ def test_inflate_with_attribute_directives():
     fragment = _create_label_fragment()
     fragment.insert_binding('test.hello-label', _build_constant_binding(''))
 
-    widget = Gtk.Label()
-    inflator.inflate_existing_widget(widget, fragment,
+    target = Gtk.Label()
+    inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
 
-    assert widget.get_text() == 'hello'
+    assert target.get_text() == 'hello'
 
 
 def test_inflate_with_auto_attribute_directives():
@@ -111,8 +111,8 @@ def test_inflate_with_auto_attribute_directives():
                             [_AutoLabelAttributeDirectiveFactory()])
     fragment = _create_label_fragment()
 
-    widget = Gtk.Label()
-    inflator.inflate_existing_widget(widget, fragment,
+    target = Gtk.Label()
+    inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
 
-    assert widget.get_text() == 'auto'
+    assert target.get_text() == 'auto'

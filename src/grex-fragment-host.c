@@ -7,8 +7,8 @@
 #include "gpropz.h"
 #include "grex-attribute-directive.h"
 
-G_DEFINE_QUARK("grex-fragment-host-on-widget", grex_fragment_host_on_widget)
-#define GREX_FRAGMENT_HOST_ON_WIDGET (grex_fragment_host_on_widget_quark())
+G_DEFINE_QUARK("grex-fragment-host-on-target", grex_fragment_host_on_target)
+#define GREX_FRAGMENT_HOST_ON_TARGET (grex_fragment_host_on_target_quark())
 
 // Manages inflation diffs for a table of values.
 typedef struct {
@@ -93,7 +93,7 @@ struct _GrexFragmentHost {
   GObject parent_instance;
 
   GrexPropertySet *applied_properties;
-  GWeakRef widget;
+  GWeakRef target;
   GrexContainerAdapter *container_adapter;
 
   gboolean in_inflation;
@@ -101,7 +101,7 @@ struct _GrexFragmentHost {
   // Everything below is inflation-related state:
 
   // The last child added to this inflation.
-  GtkWidget *last_child;
+  GObject *last_child;
 
   IncrementalTableDiff attr_directive_diff;
   GList *pending_attr_directive_updates;
@@ -110,7 +110,7 @@ struct _GrexFragmentHost {
 
 enum {
   PROP_APPLIED_PROPERTIES = 1,
-  PROP_WIDGET,
+  PROP_TARGET,
   PROP_CONTAINER_ADAPTER,
   N_PROPS,
 };
@@ -123,9 +123,9 @@ static void
 grex_fragment_host_constructed(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
 
-  GtkWidget *widget = grex_fragment_host_get_widget(host);
-  g_return_if_fail(widget != NULL);
-  g_object_set_qdata_full(G_OBJECT(widget), GREX_FRAGMENT_HOST_ON_WIDGET,
+  GObject *target = grex_fragment_host_get_target(host);
+  g_return_if_fail(target != NULL);
+  g_object_set_qdata_full(target, GREX_FRAGMENT_HOST_ON_TARGET,
                           g_object_ref_sink(host), g_object_unref);
 }
 
@@ -164,7 +164,7 @@ grex_fragment_host_dispose(GObject *object) {
 static void
 grex_fragment_host_finalize(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
-  g_weak_ref_clear(&host->widget);
+  g_weak_ref_clear(&host->target);
 }
 
 static void
@@ -201,22 +201,23 @@ grex_fragment_host_class_init(GrexFragmentHostClass *klass) {
   gpropz_class_init_property_functions(object_class);
 
   properties[PROP_APPLIED_PROPERTIES] = g_param_spec_object(
-      "applied-properties", "Applied widget properties",
-      "The set of properties currently applied to this host's widget.",
+      "applied-properties", "Applied properties",
+      "The set of properties currently applied to this host's target.",
       GREX_TYPE_PROPERTY_SET, G_PARAM_READABLE);
   gpropz_install_property(object_class, GrexFragmentHost, applied_properties,
                           PROP_APPLIED_PROPERTIES,
                           properties[PROP_APPLIED_PROPERTIES], NULL);
 
-  properties[PROP_WIDGET] = g_param_spec_object(
-      "widget", "Widget", "The widget this fragment host is controlling.",
-      GTK_TYPE_WIDGET, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
-  gpropz_install_property(object_class, GrexFragmentHost, widget, PROP_WIDGET,
-                          properties[PROP_WIDGET], &weak_ref_filter);
+  properties[PROP_TARGET] = g_param_spec_object(
+      "target", "Target",
+      "The target object this fragment host is controlling.", G_TYPE_OBJECT,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
+  gpropz_install_property(object_class, GrexFragmentHost, target, PROP_TARGET,
+                          properties[PROP_TARGET], &weak_ref_filter);
 
   properties[PROP_CONTAINER_ADAPTER] = g_param_spec_object(
       "container-adapter", "Container adapter",
-      "The container adapter used to add children to this widget.",
+      "The container adapter used to add children to this object.",
       GREX_TYPE_CONTAINER_ADAPTER, G_PARAM_READWRITE);
   gpropz_install_property(object_class, GrexFragmentHost, container_adapter,
                           PROP_CONTAINER_ADAPTER,
@@ -226,7 +227,7 @@ grex_fragment_host_class_init(GrexFragmentHostClass *klass) {
 static void
 grex_fragment_host_init(GrexFragmentHost *host) {
   host->applied_properties = grex_property_set_new();
-  g_weak_ref_init(&host->widget, NULL);
+  g_weak_ref_init(&host->target, NULL);
 
   incremental_table_diff_init(&host->attr_directive_diff, g_direct_hash,
                               g_direct_equal, NULL, g_object_unref);
@@ -236,35 +237,35 @@ grex_fragment_host_init(GrexFragmentHost *host) {
 
 /**
  * grex_fragment_host_new:
- * @widget: The widget owning this fragment host.
+ * @target: The target owning this fragment host.
  *
- * Creates a new #GrexFragmentHost, owned by the given widget.
+ * Creates a new #GrexFragmentHost, owned by the given target.
  *
  * Returns: (transfer full): A new fragment host.
  */
 GrexFragmentHost *
-grex_fragment_host_new(GtkWidget *widget) {
-  return g_object_new(GREX_TYPE_FRAGMENT_HOST, "widget", widget, NULL);
+grex_fragment_host_new(GObject *target) {
+  return g_object_new(GREX_TYPE_FRAGMENT_HOST, "target", target, NULL);
 }
 
 /**
- * grex_fragment_host_for_widget:
- * @widget: The widget.
+ * grex_fragment_host_for_target:
+ * @target: The target object.
  *
- * Locates the given widget's owned fragment host and returns it.
+ * Locates the given object's owned fragment host and returns it.
  *
- * Returns: (transfer none): The widget's fragment host, or NULL if none is
+ * Returns: (transfer none): The object's fragment host, or NULL if none is
  *                           present.
  */
 GrexFragmentHost *
-grex_fragment_host_for_widget(GtkWidget *widget) {
-  return g_object_get_qdata(G_OBJECT(widget), GREX_FRAGMENT_HOST_ON_WIDGET);
+grex_fragment_host_for_target(GObject *target) {
+  return g_object_get_qdata(target, GREX_FRAGMENT_HOST_ON_TARGET);
 }
 
 /**
  * grex_fragment_host_get_container_adapter:
  *
- * Returns the #GrexContainerAdapter used to add children to this widget.
+ * Returns the #GrexContainerAdapter used to add children to this object.
  *
  * Returns: (transfer none) (allow-none): The container adapter.
  */
@@ -273,7 +274,7 @@ grex_fragment_host_for_widget(GtkWidget *widget) {
  * grex_fragment_host_set_container_adapter:
  * @adapter: (transfer none) (allow-none): The new container adapter.
  *
- * Sets #GrexContainerAdapter used to add children to this widget.
+ * Sets #GrexContainerAdapter used to add children to this object.
  */
 GPROPZ_DEFINE_RW(GrexContainerAdapter *, GrexFragmentHost, grex_fragment_host,
                  container_adapter, properties[PROP_CONTAINER_ADAPTER])
@@ -282,7 +283,7 @@ GPROPZ_DEFINE_RW(GrexContainerAdapter *, GrexFragmentHost, grex_fragment_host,
  * grex_fragment_host_get_applied_properties:
  *
  * Returns the #GrexPropertySet containing the properties currently applied to
- * this host's widget.
+ * this host's target.
  *
  * Returns: (transfer none): The applied properties.
  */
@@ -290,42 +291,41 @@ GPROPZ_DEFINE_RO(GrexPropertySet *, GrexFragmentHost, grex_fragment_host,
                  applied_properties, properties[PROP_APPLIED_PROPERTIES])
 
 /**
- * grex_fragment_host_get_widget:
+ * grex_fragment_host_get_target:
  *
- * Returns the #GtkWidget that owns this fragment host.
+ * Returns the #GObject that owns and is controlled by this fragment host.
  *
- * Returns: (transfer none): The widget.
+ * Returns: (transfer none): The object.
  */
-GPROPZ_DEFINE_RO(GtkWidget *, GrexFragmentHost, grex_fragment_host, widget,
-                 properties[PROP_WIDGET])
+GPROPZ_DEFINE_RO(GObject *, GrexFragmentHost, grex_fragment_host, target,
+                 properties[PROP_TARGET])
 
 /**
  * grex_fragment_host_matches_fragment_type:
  * @fragment: The fragment whose type to check.
  *
- * Determines whether or not the type of this host's widget is identical to
- * the given fragment's widget type.
+ * Determines whether or not the type of this host's target is identical to
+ * the given fragment's target type.
  *
  * Returns: TRUE if the type matches.
  */
 gboolean
 grex_fragment_host_matches_fragment_type(GrexFragmentHost *host,
                                          GrexFragment *fragment) {
-  GtkWidget *widget = grex_fragment_host_get_widget(host);
-  GType type = G_OBJECT_TYPE(widget);
-  return type == grex_fragment_get_widget_type(fragment);
+  GObject *target = grex_fragment_host_get_target(host);
+  GType type = G_OBJECT_TYPE(target);
+  return type == grex_fragment_get_target_type(fragment);
 }
 
 static void
-update_properties_by_name(GrexFragmentHost *host, GObject *widget_object,
+update_properties_by_name(GrexFragmentHost *host, GObject *target,
                           GrexPropertySet *properties, GList *names) {
   for (; names != NULL; names = names->next) {
     const char *name = names->data;
 
     GrexValueHolder *value = grex_property_set_get(properties, name);
     g_warn_if_fail(value != NULL);
-    g_object_set_property(widget_object, name,
-                          grex_value_holder_get_value(value));
+    g_object_set_property(target, name, grex_value_holder_get_value(value));
 
     grex_property_set_insert(host->applied_properties, name, value);
   }
@@ -337,7 +337,7 @@ update_properties_by_name(GrexFragmentHost *host, GObject *widget_object,
  *
  * Determines the difference between the given property set and the host's
  * current applied properties (i.e. what values were added, removed, or
- * changed), and updates the widget and applied properties to match the given
+ * changed), and updates the target and applied properties to match the given
  * property set.
  */
 void
@@ -347,23 +347,23 @@ grex_fragment_host_apply_latest_properties(GrexFragmentHost *host,
   g_autoptr(GList) removed = NULL;
   g_autoptr(GList) kept = NULL;
 
-  GObject *widget_object = G_OBJECT(grex_fragment_host_get_widget(host));
+  GObject *target = grex_fragment_host_get_target(host);
 
   grex_property_set_diff_keys(host->applied_properties, properties, &added,
                               &removed, &kept);
 
-  update_properties_by_name(host, widget_object, properties, added);
-  update_properties_by_name(host, widget_object, properties, kept);
+  update_properties_by_name(host, target, properties, added);
+  update_properties_by_name(host, target, properties, kept);
 
   if (removed != NULL) {
-    GObjectClass *object_class = G_OBJECT_GET_CLASS(widget_object);
+    GObjectClass *object_class = G_OBJECT_GET_CLASS(target);
 
     for (GList *names = removed; names != NULL; names = names->next) {
       const char *name = names->data;
 
       GParamSpec *pspec = g_object_class_find_property(object_class, name);
       const GValue *default_value = g_param_spec_get_default_value(pspec);
-      g_object_set_property(widget_object, name, default_value);
+      g_object_set_property(target, name, default_value);
 
       grex_property_set_remove(host->applied_properties, name);
     }
@@ -410,17 +410,17 @@ grex_fragment_host_get_leftover_attribute_directive(GrexFragmentHost *host,
 
 /**
  * grex_fragment_host_get_leftover_child:
- * @key: The widget's key.
+ * @key: The child's key.
  *
- * Finds and returns the widget with the given key from the *previous*
- * inflation call, but only if another widget with the same key has not been
+ * Finds and returns the child with the given key from the *previous*
+ * inflation call, but only if another child with the same key has not been
  * added to the current inflation.
  *
  * May only be called during an inflation.
  *
- * Returns: (transfer none): The widget, or NULL if none was found.
+ * Returns: (transfer none): The child, or NULL if none was found.
  */
-GtkWidget *
+GObject *
 grex_fragment_host_get_leftover_child(GrexFragmentHost *host, guintptr key) {
   g_return_val_if_fail(host->in_inflation, NULL);
   return incremental_table_diff_get_leftover_value(&host->children_diff, key);
@@ -484,16 +484,16 @@ grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host) {
 
 /**
  * grex_fragment_host_add_inflated_child:
- * @key: The widget's key.
- * @child: The child widget.
+ * @key: The child's key.
+ * @child: The child object.
  *
- * Inserts a new child widget into this fragment host with the given key.
+ * Inserts a new child object into this fragment host with the given key.
  *
  * May only be called during an inflation.
  */
 void
 grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
-                                      GtkWidget *child) {
+                                      GObject *child) {
   g_return_if_fail(host->in_inflation);
 
   if (host->container_adapter == NULL) {
@@ -510,14 +510,13 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
 
   // Insert it after the last inserted child (or at the front if there is no
   // last child, which would mean we're still at the front).
-  GtkWidget *parent = grex_fragment_host_get_widget(host);
+  GObject *parent = grex_fragment_host_get_target(host);
   if (host->last_child == NULL) {
-    grex_container_adapter_insert_at_front(host->container_adapter,
-                                           G_OBJECT(parent), G_OBJECT(child));
+    grex_container_adapter_insert_at_front(host->container_adapter, parent,
+                                           child);
   } else {
-    grex_container_adapter_insert_next_to(host->container_adapter,
-                                          G_OBJECT(parent), G_OBJECT(child),
-                                          G_OBJECT(host->last_child));
+    grex_container_adapter_insert_next_to(host->container_adapter, parent,
+                                          child, host->last_child);
   }
   host->last_child = child;
 
@@ -526,16 +525,15 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
 }
 
 static void
-child_diff_removal_callback(gpointer widget, gpointer user_data) {
+child_diff_removal_callback(gpointer child, gpointer user_data) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
   g_return_if_fail(host->container_adapter != NULL);
 
-  GtkWidget *parent = grex_fragment_host_get_widget(host);
+  GObject *parent = grex_fragment_host_get_target(host);
 
-  // XXX: We should probably also do this on destroy, but will the parent widget
+  // XXX: We should probably also do this on destroy, but will the parent
   // actually still be set because it's in a weakref?
-  grex_container_adapter_remove(host->container_adapter, G_OBJECT(parent),
-                                G_OBJECT(widget));
+  grex_container_adapter_remove(host->container_adapter, parent, child);
 }
 
 static void

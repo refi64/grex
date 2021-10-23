@@ -73,8 +73,7 @@ on_second(gpointer user_data) {
 
 static void
 hello_window_init(HelloWindow *window) {
-  window->inflator =
-      grex_template_create_inflator(template, GTK_WIDGET(window));
+  window->inflator = grex_template_create_inflator(template, G_OBJECT(window));
   grex_inflator_take_directives(
       grex_reactive_inflator_get_base_inflator(window->inflator),
       GREX_INFLATOR_DIRECTIVE_NONE,

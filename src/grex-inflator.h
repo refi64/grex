@@ -40,11 +40,11 @@ void grex_inflator_add_directivesv(GrexInflator *inflator,
                                    guint n_directives,
                                    GrexDirectiveFactory **directives);
 
-GtkWidget *grex_inflator_inflate_new_widget(GrexInflator *inflator,
-                                            GrexFragment *fragment,
-                                            GrexInflationFlags flags);
-void grex_inflator_inflate_existing_widget(GrexInflator *inflator,
-                                           GtkWidget *widget,
+GObject *grex_inflator_inflate_new_target(GrexInflator *inflator,
+                                          GrexFragment *fragment,
+                                          GrexInflationFlags flags);
+void grex_inflator_inflate_existing_target(GrexInflator *inflator,
+                                           GObject *target,
                                            GrexFragment *fragment,
                                            GrexInflationFlags flags);
 

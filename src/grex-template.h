@@ -23,4 +23,4 @@ GrexTemplate *grex_template_new_from_resource(const char *resource,
 GrexFragment *grex_template_get_fragment(GrexTemplate *template);
 
 GrexReactiveInflator *grex_template_create_inflator(GrexTemplate *template,
-                                                    GtkWidget *widget);
+                                                    GObject *target);

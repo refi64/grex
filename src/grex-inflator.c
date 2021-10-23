@@ -266,39 +266,38 @@ grex_inflator_apply_directives(GrexInflator *inflator, GrexFragmentHost *host,
 }
 
 /**
- * grex_inflator_inflate_new_widget:
+ * grex_inflator_inflate_new_target:
  * @fragment: (transfer none): The fragment to inflate.
  *
- * Creates a new #GtkWidget, inflating the given fragment into it.
+ * Creates a new #GObject, inflating the given fragment into it.
  *
- * Returns: (transfer full): The newly created widget.
+ * Returns: (transfer full): The newly created object.
  */
-GtkWidget *
-grex_inflator_inflate_new_widget(GrexInflator *inflator, GrexFragment *fragment,
+GObject *
+grex_inflator_inflate_new_target(GrexInflator *inflator, GrexFragment *fragment,
                                  GrexInflationFlags flags) {
-  GType widget_type = grex_fragment_get_widget_type(fragment);
-  g_return_val_if_fail(g_type_is_a(widget_type, GTK_TYPE_WIDGET), NULL);
+  GType target_type = grex_fragment_get_target_type(fragment);
 
   // TODO: handle construct-only properties.
-  GtkWidget *widget = GTK_WIDGET(g_object_new(widget_type, NULL));
-  grex_inflator_inflate_existing_widget(inflator, widget, fragment, flags);
-  return widget;
+  GObject *target = g_object_new(target_type, NULL);
+  grex_inflator_inflate_existing_target(inflator, target, fragment, flags);
+  return target;
 }
 
 /**
- * grex_inflator_inflate_existing_widget:
+ * grex_inflator_inflate_existing_object:
  * @fragment: (transfer none): The fragment to inflate.
- * @widget: (transfer none): The widget to inflate the fragent into.
+ * @target: (transfer none): The object to inflate the fragent into.
  *
- * Inflates the given fragment into the given widget.
+ * Inflates the given fragment into the given object.
  */
 void
-grex_inflator_inflate_existing_widget(GrexInflator *inflator, GtkWidget *widget,
+grex_inflator_inflate_existing_target(GrexInflator *inflator, GObject *target,
                                       GrexFragment *fragment,
                                       GrexInflationFlags flags) {
-  g_autoptr(GrexFragmentHost) host = grex_fragment_host_for_widget(widget);
+  g_autoptr(GrexFragmentHost) host = grex_fragment_host_for_target(target);
   if (host == NULL) {
-    host = grex_fragment_host_new(widget);
+    host = grex_fragment_host_new(target);
   } else {
     g_object_ref(host);
     g_return_if_fail(grex_fragment_host_matches_fragment_type(host, fragment));
@@ -326,12 +325,12 @@ void
 grex_inflator_inflate_child(GrexInflator *inflator, GrexFragmentHost *parent,
                             guintptr key, GrexFragment *child,
                             GrexInflationFlags flags) {
-  GtkWidget *child_widget = grex_fragment_host_get_leftover_child(parent, key);
-  if (child_widget == NULL) {
-    child_widget = grex_inflator_inflate_new_widget(inflator, child, flags);
+  GObject *child_object = grex_fragment_host_get_leftover_child(parent, key);
+  if (child_object == NULL) {
+    child_object = grex_inflator_inflate_new_target(inflator, child, flags);
   } else {
-    grex_inflator_inflate_existing_widget(inflator, child_widget, child, flags);
+    grex_inflator_inflate_existing_target(inflator, child_object, child, flags);
   }
 
-  grex_fragment_host_add_inflated_child(parent, key, child_widget);
+  grex_fragment_host_add_inflated_child(parent, key, child_object);
 }

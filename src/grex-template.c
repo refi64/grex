@@ -5,7 +5,6 @@
 #include "grex-template.h"
 
 #include "gpropz.h"
-#include "grex-widget-container-adapter.h"
 
 struct _GrexTemplate {
   GObject parent_instance;
@@ -124,14 +123,14 @@ GPROPZ_DEFINE_RO(GrexFragment *, GrexTemplate, grex_template, fragment,
 
 /**
  * grex_template_create_inflator:
- * @widget: (transfer none): The target widget.
+ * @target: (transfer none): The target object.
  *
  * Creates a new reactive inflator that will inflate this template into the
- * given widget.
+ * given object.
  *
  * Returns: (transfer full): The new inflator.
  */
 GrexReactiveInflator *
-grex_template_create_inflator(GrexTemplate *template, GtkWidget *widget) {
-  return grex_reactive_inflator_new(template->fragment, widget);
+grex_template_create_inflator(GrexTemplate *template, GObject *target) {
+  return grex_reactive_inflator_new(template->fragment, target);
 }

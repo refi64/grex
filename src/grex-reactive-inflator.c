@@ -11,13 +11,13 @@ struct _GrexReactiveInflator {
 
   GrexInflator *base_inflator;
   GrexFragment *fragment;
-  GtkWidget *widget;
+  GObject *target;
 };
 
 enum {
   PROP_BASE_INFLATOR = 1,
   PROP_FRAGMENT,
-  PROP_WIDGET,
+  PROP_TARGET,
   N_PROPS,
 };
 
@@ -37,7 +37,7 @@ grex_reactive_inflator_dispose(GObject *object) {
 
   g_clear_object(&inflator->base_inflator);  // NOLINT
   g_clear_object(&inflator->fragment);       // NOLINT
-  g_clear_object(&inflator->widget);         // NOLINT
+  g_clear_object(&inflator->target);         // NOLINT
 }
 
 static void
@@ -61,8 +61,8 @@ grex_reactive_inflator_class_init(GrexReactiveInflatorClass *klass) {
 
   properties[PROP_BASE_INFLATOR] = g_param_spec_object(
       "base-inflator", "Base inflator",
-      "The base inflator used to inflate the target widget.",
-      GREX_TYPE_INFLATOR, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
+      "The base inflator used to inflate the target.", GREX_TYPE_INFLATOR,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
   gpropz_install_property(object_class, GrexReactiveInflator, base_inflator,
                           PROP_BASE_INFLATOR, properties[PROP_BASE_INFLATOR],
                           NULL);
@@ -73,11 +73,11 @@ grex_reactive_inflator_class_init(GrexReactiveInflatorClass *klass) {
   gpropz_install_property(object_class, GrexReactiveInflator, fragment,
                           PROP_FRAGMENT, properties[PROP_FRAGMENT], NULL);
 
-  properties[PROP_WIDGET] = g_param_spec_object(
-      "widget", "Target widget", "The widget to inflate the fragment into.",
-      GTK_TYPE_WIDGET, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
-  gpropz_install_property(object_class, GrexReactiveInflator, widget,
-                          PROP_WIDGET, properties[PROP_WIDGET], NULL);
+  properties[PROP_TARGET] = g_param_spec_object(
+      "target", "Target object", "The object to inflate the fragment into.",
+      G_TYPE_OBJECT, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
+  gpropz_install_property(object_class, GrexReactiveInflator, target,
+                          PROP_TARGET, properties[PROP_TARGET], NULL);
 }
 
 static void
@@ -86,25 +86,24 @@ grex_reactive_inflator_init(GrexReactiveInflator *inflator) {}
 /**
  * grex_reactive_inflator_new:
  * @fragment: The fragment to inflate.
- * @widget: The target widget.
+ * @target: The target object.
  *
  * Creates a new reactive inflator.
  *
  * Returns: (transfer full): The reactive inflator.
  */
 GrexReactiveInflator *
-grex_reactive_inflator_new(GrexFragment *fragment, GtkWidget *widget) {
-  g_autoptr(GrexInflator) base_inflator =
-      grex_inflator_new_with_scope(G_OBJECT(widget));
+grex_reactive_inflator_new(GrexFragment *fragment, GObject *target) {
+  g_autoptr(GrexInflator) base_inflator = grex_inflator_new_with_scope(target);
   return grex_reactive_inflator_new_with_base_inflator(base_inflator, fragment,
-                                                       widget);
+                                                       target);
 }
 
 /**
  * grex_reactive_inflator_new_with_base_inflator:
  * @base_inflator: The inflator to use to inflate the fragment.
  * @fragment: The fragment to inflate.
- * @widget: The target widget.
+ * @target: The target object.
  *
  * Creates a new reactive inflator.
  *
@@ -113,9 +112,9 @@ grex_reactive_inflator_new(GrexFragment *fragment, GtkWidget *widget) {
 GrexReactiveInflator *
 grex_reactive_inflator_new_with_base_inflator(GrexInflator *base_inflator,
                                               GrexFragment *fragment,
-                                              GtkWidget *widget) {
+                                              GObject *target) {
   return g_object_new(GREX_TYPE_REACTIVE_INFLATOR, "base-inflator",
-                      base_inflator, "fragment", fragment, "widget", widget,
+                      base_inflator, "fragment", fragment, "target", target,
                       NULL);
 }
 
@@ -140,19 +139,19 @@ GPROPZ_DEFINE_RO(GrexFragment *, GrexReactiveInflator, grex_reactive_inflator,
                  fragment, properties[PROP_FRAGMENT])
 
 /**
- * grex_reactive_inflator_get_widget:
+ * grex_reactive_inflator_get_target:
  *
- * Returns the inflator's widget.
+ * Returns the inflator's target.
  *
- * Returns: (transfer none): The widget.
+ * Returns: (transfer none): The target.
  */
-GPROPZ_DEFINE_RO(GtkWidget *, GrexReactiveInflator, grex_reactive_inflator,
-                 widget, properties[PROP_WIDGET])
+GPROPZ_DEFINE_RO(GObject *, GrexReactiveInflator, grex_reactive_inflator,
+                 target, properties[PROP_TARGET])
 
 /**
  * grex_reactive_inflator_inflate:
  *
- * Performs a new inflation of this inflator's fragment into its target widget,
+ * Performs a new inflation of this inflator's fragment into its target object,
  * tracking new dependencies in the process.
  */
 void
@@ -161,7 +160,7 @@ grex_reactive_inflator_inflate(GrexReactiveInflator *inflator) {
       grex_inflator_get_context(inflator->base_inflator);
   grex_expression_context_reset_dependencies(context);
 
-  grex_inflator_inflate_existing_widget(inflator->base_inflator,
-                                        inflator->widget, inflator->fragment,
+  grex_inflator_inflate_existing_target(inflator->base_inflator,
+                                        inflator->target, inflator->fragment,
                                         GREX_INFLATION_TRACK_DEPENDENCIES);
 }

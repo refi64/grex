@@ -8,19 +8,23 @@
 #include "grex-config.h"
 #include "grex-source-location.h"
 
+// TODO: Look into removing this? It's needed for GtkBuilderScope, but we might
+// not want everything at this low of a level to be tied to GTK.
+#include <gtk/gtk.h>
+
 G_BEGIN_DECLS
 
 #define GREX_TYPE_FRAGMENT grex_fragment_get_type()
 G_DECLARE_FINAL_TYPE(GrexFragment, grex_fragment, GREX, FRAGMENT, GObject)
 
-GrexFragment *grex_fragment_new(GType widget_type,
+GrexFragment *grex_fragment_new(GType target_type,
                                 GrexSourceLocation *location);
 
 GrexFragment *grex_fragment_parse_xml(const char *xml, gssize len,
                                       const char *filename,
                                       GtkBuilderScope *scope, GError **error);
 
-GType grex_fragment_get_widget_type(GrexFragment *fragment);
+GType grex_fragment_get_target_type(GrexFragment *fragment);
 GrexSourceLocation *grex_fragment_get_location(GrexFragment *fragment);
 
 void grex_fragment_insert_binding(GrexFragment *fragment, const char *target,

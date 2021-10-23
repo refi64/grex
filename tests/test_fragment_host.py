@@ -41,7 +41,7 @@ def test_fragment_host_construction():
     label = Gtk.Label()
     host = Grex.FragmentHost.new(label)
     assert host.get_applied_properties().get_keys() == []
-    assert host.get_widget() == label
+    assert host.get_target() == label
 
 
 def test_fragment_host_matching_type():

@@ -6,7 +6,6 @@
 
 #include <glib-object.h>
 #include <glib.h>
-#include <gtk/gtk.h>
 
 #if !defined(_GREX_ALLOW_INDIVIDUAL_HEADERS) && !defined(_GREX_INTERNAL)
 #error "Only <grex.h> may be included directly."

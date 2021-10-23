@@ -17,9 +17,9 @@ typedef struct _GrexAttributeDirective GrexAttributeDirective;
 G_DECLARE_FINAL_TYPE(GrexFragmentHost, grex_fragment_host, GREX, FRAGMENT_HOST,
                      GObject)
 
-GrexFragmentHost *grex_fragment_host_new(GtkWidget *widget);
+GrexFragmentHost *grex_fragment_host_new(GObject *target);
 
-GrexFragmentHost *grex_fragment_host_for_widget(GtkWidget *widget);
+GrexFragmentHost *grex_fragment_host_for_target(GObject *target);
 
 GrexContainerAdapter *
 grex_fragment_host_get_container_adapter(GrexFragmentHost *host);
@@ -28,7 +28,7 @@ void grex_fragment_host_set_container_adapter(GrexFragmentHost *host,
 
 GrexPropertySet *
 grex_fragment_host_get_applied_properties(GrexFragmentHost *host);
-GtkWidget *grex_fragment_host_get_widget(GrexFragmentHost *host);
+GObject *grex_fragment_host_get_target(GrexFragmentHost *host);
 
 gboolean grex_fragment_host_matches_fragment_type(GrexFragmentHost *host,
                                                   GrexFragment *fragment);
@@ -47,10 +47,10 @@ grex_fragment_host_add_attribute_directive(GrexFragmentHost *host, guintptr key,
 
 void grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host);
 
-GtkWidget *grex_fragment_host_get_leftover_child(GrexFragmentHost *host,
-                                                 guintptr key);
+GObject *grex_fragment_host_get_leftover_child(GrexFragmentHost *host,
+                                               guintptr key);
 void grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
-                                           GtkWidget *child);
+                                           GObject *child);
 
 void grex_fragment_host_commit_inflation(GrexFragmentHost *host);
 
