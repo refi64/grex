@@ -25,4 +25,14 @@ G_DECLARE_FINAL_TYPE(GrexChildPropertyContainerAdapterDirective,
                      CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE,
                      GrexAttributeDirective)
 
+#define GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE_FACTORY \
+  grex_child_property_container_adapter_directive_factory_get_type()
+G_DECLARE_FINAL_TYPE(GrexChildPropertyContainerAdapterDirectiveFactory,
+                     grex_child_property_container_adapter_directive_factory,
+                     GREX, CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE_FACTORY,
+                     GrexDirectiveFactory)
+
+GrexChildPropertyContainerAdapterDirectiveFactory *
+grex_child_property_container_adapter_directive_factory_new();
+
 G_END_DECLS

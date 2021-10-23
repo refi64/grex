@@ -5,6 +5,8 @@
 #pragma once
 
 #include "grex-config.h"
+#include "grex-fragment-host.h"
+#include "grex-fragment.h"
 
 #define GREX_TYPE_DIRECTIVE grex_directive_get_type()
 G_DECLARE_DERIVABLE_TYPE(GrexDirective, grex_directive, GREX, DIRECTIVE,
@@ -15,14 +17,31 @@ typedef struct _GrexDirectiveClassPrivate GrexDirectiveClassPrivate;
 struct _GrexDirectiveClass {
   GObjectClass parent_class;
 
-  GrexDirectiveClassPrivate *priv;
-
   gpointer padding[16];
 };
 
-const char *grex_directive_class_get_name(GrexDirectiveClass *klass);
-GType grex_directive_class_get_auto_attach(GrexDirectiveClass *klass);
+#define GREX_TYPE_DIRECTIVE_FACTORY grex_directive_factory_get_type()
+G_DECLARE_DERIVABLE_TYPE(GrexDirectiveFactory, grex_directive_factory, GREX,
+                         DIRECTIVE_FACTORY, GObject)
 
-void grex_directive_class_set_name(GrexDirectiveClass *klass, const char *name);
-void grex_directive_class_set_auto_attach(GrexDirectiveClass *klass,
-                                          GType auto_attach_type);
+struct _GrexDirectiveFactoryClass {
+  GObjectClass parent_class;
+
+  const char *(*get_name)(GrexDirectiveFactory *factory);
+
+  GrexDirective *(*create)(GrexDirectiveFactory *factory);
+
+  gboolean (*should_auto_attach)(GrexDirectiveFactory *factory,
+                                 GrexFragmentHost *host,
+                                 GrexFragment *fragment);
+
+  gpointer padding[12];
+};
+
+const char *grex_directive_factory_get_name(GrexDirectiveFactory *factory);
+GrexDirective *grex_directive_factory_create(GrexDirectiveFactory *factory);
+
+gboolean
+grex_directive_factory_should_auto_attach(GrexDirectiveFactory *factory,
+                                          GrexFragmentHost *host,
+                                          GrexFragment *fragment);

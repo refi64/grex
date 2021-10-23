@@ -40,9 +40,9 @@ void grex_fragment_host_begin_inflation(GrexFragmentHost *host);
 
 GrexAttributeDirective *
 grex_fragment_host_get_leftover_attribute_directive(GrexFragmentHost *host,
-                                                    GType type);
+                                                    guintptr key);
 void
-grex_fragment_host_add_attribute_directive(GrexFragmentHost *host,
+grex_fragment_host_add_attribute_directive(GrexFragmentHost *host, guintptr key,
                                            GrexAttributeDirective *directive);
 
 void grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host);

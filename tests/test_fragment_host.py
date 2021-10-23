@@ -37,10 +37,6 @@ class _AttributeDirectiveY(_MockAttributeDirective):
     pass
 
 
-Grex.DirectiveClass.set_name(_AttributeDirectiveX, 'grex.test-x')
-Grex.DirectiveClass.set_name(_AttributeDirectiveY, 'grex.test-y')
-
-
 def test_fragment_host_construction():
     label = Gtk.Label()
     host = Grex.FragmentHost.new(label)
@@ -153,7 +149,7 @@ def test_fragment_host_inflation_attribute_directives():
     y = _AttributeDirectiveY()
 
     host.begin_inflation()
-    host.add_attribute_directive(x)
+    host.add_attribute_directive(0, x)
     host.commit_inflation()
 
     x.mock_attach.assert_called_once_with(host)
@@ -163,10 +159,10 @@ def test_fragment_host_inflation_attribute_directives():
     x.reset_mocks()
 
     host.begin_inflation()
-    assert host.get_leftover_attribute_directive(_AttributeDirectiveX) == x
-    host.add_attribute_directive(x)
-    assert host.get_leftover_attribute_directive(_AttributeDirectiveX) is None
-    host.add_attribute_directive(y)
+    assert host.get_leftover_attribute_directive(0) == x
+    host.add_attribute_directive(0, x)
+    assert host.get_leftover_attribute_directive(0) is None
+    host.add_attribute_directive(1, y)
     host.commit_inflation()
 
     x.mock_attach.assert_not_called()
@@ -181,7 +177,7 @@ def test_fragment_host_inflation_attribute_directives():
     y.reset_mocks()
 
     host.begin_inflation()
-    host.add_attribute_directive(y)
+    host.add_attribute_directive(1, y)
     host.commit_inflation()
 
     x.mock_attach.assert_not_called()
@@ -210,7 +206,7 @@ def test_fragment_host_inflation_attribute_directives():
     y.reset_mocks()
 
     host.begin_inflation()
-    host.add_attribute_directive(y)
+    host.add_attribute_directive(1, y)
     host.commit_inflation()
 
     y.mock_attach.assert_called_once_with(host)

@@ -13,7 +13,7 @@ struct _GrexInflator {
 
   GrexExpressionContext *context;
 
-  GHashTable *directive_types;
+  GHashTable *directive_factories;
   GHashTable *auto_directive_names;
 };
 
@@ -32,7 +32,8 @@ grex_inflator_finalize(GObject *object) {
 
   g_clear_pointer(&inflator->auto_directive_names,  // NOLINT
                   g_hash_table_unref);
-  g_clear_pointer(&inflator->directive_types, g_hash_table_unref);  // NOLINT
+  g_clear_pointer(&inflator->directive_factories,  // NOLINT
+                  g_hash_table_unref);
 }
 
 static void
@@ -53,8 +54,8 @@ grex_inflator_class_init(GrexInflatorClass *klass) {
 
 static void
 grex_inflator_init(GrexInflator *inflator) {
-  inflator->directive_types = g_hash_table_new_full(g_str_hash, g_str_equal,
-                                                    g_free, g_type_class_unref);
+  inflator->directive_factories =
+      g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
   inflator->auto_directive_names = g_hash_table_new(g_str_hash, g_str_equal);
 }
 
@@ -98,48 +99,66 @@ GPROPZ_DEFINE_RO(GrexExpressionContext *, GrexInflator, grex_inflator, context,
                  properties[PROP_CONTEXT])
 
 void
-grex_inflator_add_directives(GrexInflator *inflator,
-                             GrexInflatorDirectiveFlags flags, ...) {
-  g_autoptr(GArray) directives = g_array_new(FALSE, TRUE, sizeof(GType));
+grex_inflator_take_directives(GrexInflator *inflator,
+                              GrexInflatorDirectiveFlags flags, ...) {
+  g_autoptr(GPtrArray) directives =
+      g_ptr_array_new_with_free_func(g_object_unref);
 
   va_list va;
   va_start(va, flags);
   for (;;) {
-    GType directive_type = va_arg(va, GType);
-    if (directive_type == 0) {
+    GrexDirectiveFactory *factory = va_arg(va, GrexDirectiveFactory *);
+    if (factory == NULL) {
       break;
     }
-    g_array_append_val(directives, directive_type);
+
+    g_ptr_array_add(directives, factory);
   }
   va_end(va);
 
   grex_inflator_add_directivesv(inflator, flags, directives->len,
-                                (GType *)directives->data);
+                                (GrexDirectiveFactory **)directives->pdata);
+}
+
+void
+grex_inflator_add_directives(GrexInflator *inflator,
+                             GrexInflatorDirectiveFlags flags, ...) {
+  g_autoptr(GPtrArray) directives = g_ptr_array_new();
+
+  va_list va;
+  va_start(va, flags);
+  for (;;) {
+    GrexDirectiveFactory *factory = va_arg(va, GrexDirectiveFactory *);
+    if (factory == NULL) {
+      break;
+    }
+
+    g_ptr_array_add(directives, factory);
+  }
+  va_end(va);
+
+  grex_inflator_add_directivesv(inflator, flags, directives->len,
+                                (GrexDirectiveFactory **)directives->pdata);
 }
 
 /**
  * grex_inflator_add_directivesv: (rename-to grex_inflator_add_directives)
- * @directives: (array length=n_directives)
+ * @directives: (array length=n_directives) (transfer none)
  */
 void
 grex_inflator_add_directivesv(GrexInflator *inflator,
                               GrexInflatorDirectiveFlags flags,
-                              guint n_directives, GType *directives) {
+                              guint n_directives,
+                              GrexDirectiveFactory **directives) {
   for (guint i = 0; i < n_directives; i++) {
-    GType type = directives[i];
-    g_autoptr(GrexDirectiveClass) directive_class =
-        GREX_DIRECTIVE_CLASS(g_type_class_ref(type));
-    const char *name = grex_directive_class_get_name(directive_class);
-    if (name == NULL) {
-      g_warning("Directive '%s' has no name set", g_type_name(type));
-      continue;
-    }
+    GrexDirectiveFactory *factory = directives[i];
 
-    char *dup_name = g_strdup(name);
-    g_hash_table_insert(inflator->directive_types, dup_name,
-                        g_steal_pointer(&directive_class));
+    char *name = g_strdup(grex_directive_factory_get_name(factory));
+    g_hash_table_insert(inflator->directive_factories, name,
+                        g_object_ref(factory));
+
     if (!(flags & GREX_INFLATOR_DIRECTIVE_NO_AUTO_ATTACH)) {
-      g_hash_table_add(inflator->auto_directive_names, dup_name);
+      g_hash_table_add(inflator->auto_directive_names, name);
     }
   }
 }
@@ -152,7 +171,7 @@ grex_inflator_evaluate_fragment_property_set(GrexInflator *inflator,
   g_autoptr(GList) targets = grex_fragment_get_binding_targets(fragment);
 
   for (GList *target = targets; target != NULL; target = target->next) {
-    if (g_hash_table_contains(inflator->directive_types, target->data)) {
+    if (g_hash_table_contains(inflator->directive_factories, target->data)) {
       // Skip it, it's a directive that is handled separately.
       continue;
     }
@@ -179,21 +198,23 @@ grex_inflator_evaluate_fragment_property_set(GrexInflator *inflator,
 }
 
 static void
-add_directive(GrexFragmentHost *host, GrexDirectiveClass *directive_class,
+add_directive(GrexFragmentHost *host, GrexDirectiveFactory *factory,
               GHashTable *inserted_directives) {
   g_autoptr(GrexAttributeDirective) directive =
-      grex_fragment_host_get_leftover_attribute_directive(
-          host, G_TYPE_FROM_CLASS(directive_class));
+      grex_fragment_host_get_leftover_attribute_directive(host,
+                                                          (guintptr)factory);
   if (directive != NULL) {
     g_object_ref(directive);
   } else {
-    directive = g_object_new(G_TYPE_FROM_CLASS(directive_class), NULL);
+    directive =
+        GREX_ATTRIBUTE_DIRECTIVE(grex_directive_factory_create(factory));
   }
 
-  grex_fragment_host_add_attribute_directive(host, directive);
+  grex_fragment_host_add_attribute_directive(host, (guintptr)factory,
+                                             directive);
   grex_fragment_host_apply_pending_directive_updates(host);
 
-  g_hash_table_add(inserted_directives, directive_class);
+  g_hash_table_add(inserted_directives, factory);
 }
 
 static void
@@ -207,21 +228,16 @@ grex_inflator_auto_attach_directives(GrexInflator *inflator,
   g_hash_table_iter_init(&iter, inflator->auto_directive_names);
   while (g_hash_table_iter_next(&iter, &key, NULL)) {
     const char *name = key;
-    GrexDirectiveClass *directive_class =
-        g_hash_table_lookup(inflator->directive_types, name);
-    if (G_UNLIKELY(directive_class == NULL)) {
+    GrexDirectiveFactory *factory =
+        g_hash_table_lookup(inflator->directive_factories, name);
+    if (G_UNLIKELY(factory == NULL)) {
       g_warning("Missing auto-assign directive: %s", name);
       continue;
     }
 
-    GType auto_attach_type =
-        grex_directive_class_get_auto_attach(directive_class);
-
-    if (auto_attach_type != 0 &&
-        g_type_is_a(grex_fragment_get_widget_type(fragment),
-                    auto_attach_type) &&
-        !g_hash_table_contains(inserted_directives, directive_class)) {
-      add_directive(host, directive_class, inserted_directives);
+    if (!g_hash_table_contains(inserted_directives, factory) &&
+        grex_directive_factory_should_auto_attach(factory, host, fragment)) {
+      add_directive(host, factory, inserted_directives);
     }
   }
 }
@@ -235,14 +251,14 @@ grex_inflator_apply_directives(GrexInflator *inflator, GrexFragmentHost *host,
 
   for (GList *target = targets; target != NULL; target = target->next) {
     const char *name = target->data;
-    GrexDirectiveClass *directive_class =
-        g_hash_table_lookup(inflator->directive_types, name);
-    if (directive_class == NULL) {
+    GrexDirectiveFactory *factory =
+        g_hash_table_lookup(inflator->directive_factories, name);
+    if (factory == NULL) {
       // Not a directive.
       continue;
     }
 
-    add_directive(host, directive_class, inserted_directives);
+    add_directive(host, factory, inserted_directives);
   }
 
   grex_inflator_auto_attach_directives(inflator, host, fragment,

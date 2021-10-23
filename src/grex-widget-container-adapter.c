@@ -91,12 +91,43 @@ grex_widget_container_adapter_directive_class_init(
       GREX_ATTRIBUTE_DIRECTIVE_CLASS(klass);
   attr_directive_class->attach = grex_widget_container_adapter_directive_attach;
   // TODO: figure out how we want detaching to work
-
-  GrexDirectiveClass *directive_class = GREX_DIRECTIVE_CLASS(klass);
-  grex_directive_class_set_name(directive_class,
-                                "grex.widget-container-adapter");
 }
 
 static void
 grex_widget_container_adapter_directive_init(
     GrexWidgetContainerAdapterDirective *directive) {}
+
+struct _GrexWidgetContainerAdapterDirectiveFactory {
+  GrexDirectiveFactory parent_instance;
+};
+
+G_DEFINE_TYPE(GrexWidgetContainerAdapterDirectiveFactory,
+              grex_widget_container_adapter_directive_factory,
+              GREX_TYPE_DIRECTIVE_FACTORY)
+
+static const char *
+grex_widget_container_adapter_directive_factory_get_name(
+    GrexDirectiveFactory *factory) {
+  return "grex.widget-container-adapter";
+}
+
+static GrexDirective *
+grex_widget_container_adapter_directive_factory_create(
+    GrexDirectiveFactory *factory) {
+  return g_object_new(GREX_TYPE_WIDGET_CONTAINER_ADAPTER_DIRECTIVE, NULL);
+}
+
+static void
+grex_widget_container_adapter_directive_factory_class_init(
+    GrexWidgetContainerAdapterDirectiveFactoryClass *klass) {
+  GrexDirectiveFactoryClass *factory_class =
+      GREX_DIRECTIVE_FACTORY_CLASS(klass);
+  factory_class->get_name =
+      grex_widget_container_adapter_directive_factory_get_name;
+  factory_class->create =
+      grex_widget_container_adapter_directive_factory_create;
+}
+
+static void
+grex_widget_container_adapter_directive_factory_init(
+    GrexWidgetContainerAdapterDirectiveFactory *factory) {}

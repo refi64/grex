@@ -72,7 +72,7 @@ const HelloWindow = GObject.registerClass({
     this.inflator = HelloWindow.template.create_inflator(this)
     this.inflator.get_base_inflator().add_directives(
       Grex.InflatorDirectiveFlags.FLAGS_NONE,
-      [Grex.ChildPropertyContainerAdapterDirective])
+      [new Grex.ChildPropertyContainerAdapterDirectiveFactory()])
     this.inflator.inflate()
 
     this.timer_source = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {

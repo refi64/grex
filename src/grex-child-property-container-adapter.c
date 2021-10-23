@@ -97,12 +97,50 @@ grex_child_property_container_adapter_directive_class_init(
   attr_directive_class->attach =
       grex_child_property_container_adapter_directive_attach;
   // TODO: figure out how we want detaching to work
-
-  GrexDirectiveClass *directive_class = GREX_DIRECTIVE_CLASS(klass);
-  grex_directive_class_set_name(directive_class,
-                                "grex.child-property-container-adapter");
 }
 
 static void
 grex_child_property_container_adapter_directive_init(
     GrexChildPropertyContainerAdapterDirective *directive) {}
+
+struct _GrexChildPropertyContainerAdapterDirectiveFactory {
+  GrexDirectiveFactory parent_instance;
+};
+
+G_DEFINE_TYPE(GrexChildPropertyContainerAdapterDirectiveFactory,
+              grex_child_property_container_adapter_directive_factory,
+              GREX_TYPE_DIRECTIVE_FACTORY)
+
+static const char *
+grex_child_property_container_adapter_directive_factory_get_name(
+    GrexDirectiveFactory *factory) {
+  return "grex.child-property-container-adapter";
+}
+
+static GrexDirective *
+grex_child_property_container_adapter_directive_factory_create(
+    GrexDirectiveFactory *factory) {
+  return g_object_new(GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE,
+                      NULL);
+}
+
+static void
+grex_child_property_container_adapter_directive_factory_class_init(
+    GrexChildPropertyContainerAdapterDirectiveFactoryClass *klass) {
+  GrexDirectiveFactoryClass *factory_class =
+      GREX_DIRECTIVE_FACTORY_CLASS(klass);
+  factory_class->get_name =
+      grex_child_property_container_adapter_directive_factory_get_name;
+  factory_class->create =
+      grex_child_property_container_adapter_directive_factory_create;
+}
+
+static void
+grex_child_property_container_adapter_directive_factory_init(
+    GrexChildPropertyContainerAdapterDirectiveFactory *factory) {}
+
+GrexChildPropertyContainerAdapterDirectiveFactory *
+grex_child_property_container_adapter_directive_factory_new() {
+  return g_object_new(
+      GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE_FACTORY, NULL);
+}

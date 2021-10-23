@@ -29,12 +29,16 @@ GrexInflator *grex_inflator_new_with_scope(GObject *scope);
 
 GrexExpressionContext *grex_inflator_get_context(GrexInflator *inflator);
 
+void grex_inflator_take_directives(GrexInflator *inflator,
+                                   GrexInflatorDirectiveFlags flags,
+                                   ...) G_GNUC_NULL_TERMINATED;
 void grex_inflator_add_directives(GrexInflator *inflator,
                                   GrexInflatorDirectiveFlags flags,
                                   ...) G_GNUC_NULL_TERMINATED;
 void grex_inflator_add_directivesv(GrexInflator *inflator,
                                    GrexInflatorDirectiveFlags flags,
-                                   guint n_directives, GType *directives);
+                                   guint n_directives,
+                                   GrexDirectiveFactory **directives);
 
 GtkWidget *grex_inflator_inflate_new_widget(GrexInflator *inflator,
                                             GrexFragment *fragment,

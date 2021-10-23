@@ -75,10 +75,10 @@ static void
 hello_window_init(HelloWindow *window) {
   window->inflator =
       grex_template_create_inflator(template, GTK_WIDGET(window));
-  grex_inflator_add_directives(
+  grex_inflator_take_directives(
       grex_reactive_inflator_get_base_inflator(window->inflator),
       GREX_INFLATOR_DIRECTIVE_NONE,
-      GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE, NULL);
+      grex_child_property_container_adapter_directive_factory_new(), NULL);
 
   grex_reactive_inflator_inflate(window->inflator);
 

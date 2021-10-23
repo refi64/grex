@@ -24,7 +24,12 @@ class _HelloLabelAttributeDirective(Grex.AttributeDirective):
         host.get_widget().set_text('hello')
 
 
-Grex.DirectiveClass.set_name(_HelloLabelAttributeDirective, 'test.hello-label')
+class _HelloLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
+    def do_get_name(self):
+        return 'test.hello-label'
+
+    def do_create(self):
+        return _HelloLabelAttributeDirective()
 
 
 class _AutoLabelAttributeDirective(Grex.AttributeDirective):
@@ -32,8 +37,15 @@ class _AutoLabelAttributeDirective(Grex.AttributeDirective):
         host.get_widget().set_text('auto')
 
 
-Grex.DirectiveClass.set_name(_AutoLabelAttributeDirective, 'test.auto-label')
-Grex.DirectiveClass.set_auto_attach(_AutoLabelAttributeDirective, Gtk.Label)
+class _AutoLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
+    def do_get_name(self):
+        return 'test.auto-label'
+
+    def do_create(self):
+        return _AutoLabelAttributeDirective()
+
+    def do_should_auto_attach(self, host, fragment):
+        return isinstance(host.get_widget(), Gtk.Label)
 
 
 def test_inflate_new_widget():
@@ -82,7 +94,7 @@ def test_inflate_with_children():
 def test_inflate_with_attribute_directives():
     inflator = Grex.Inflator()
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [_HelloLabelAttributeDirective])
+                            [_HelloLabelAttributeDirectiveFactory()])
     fragment = _create_label_fragment()
     fragment.insert_binding('test.hello-label', _build_constant_binding(''))
 
@@ -96,7 +108,7 @@ def test_inflate_with_attribute_directives():
 def test_inflate_with_auto_attribute_directives():
     inflator = Grex.Inflator()
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [_AutoLabelAttributeDirective])
+                            [_AutoLabelAttributeDirectiveFactory()])
     fragment = _create_label_fragment()
 
     widget = Gtk.Label()

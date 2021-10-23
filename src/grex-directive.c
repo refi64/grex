@@ -4,70 +4,75 @@
 
 #include "grex-directive.h"
 
-// TODO: figure out if there's a better way of adding class-level private data
-struct _GrexDirectiveClassPrivate {
-  char *name;
-  GType auto_attach_type;
-};
-
 G_DEFINE_ABSTRACT_TYPE(GrexDirective, grex_directive, G_TYPE_OBJECT)
+G_DEFINE_ABSTRACT_TYPE(GrexDirectiveFactory, grex_directive_factory,
+                       G_TYPE_OBJECT)
 
 static void
-grex_directive_class_init(GrexDirectiveClass *klass) {
-  klass->priv = g_new0(GrexDirectiveClassPrivate, 1);
-}
+grex_directive_class_init(GrexDirectiveClass *klass) {}
 
 static void
 grex_directive_init(GrexDirective *directive) {}
 
+static gboolean
+grex_directive_factory_should_auto_attach_default(GrexDirectiveFactory *factory,
+                                                  GrexFragmentHost *host,
+                                                  GrexFragment *fragment) {
+  return FALSE;
+}
+
+static void
+grex_directive_factory_class_init(GrexDirectiveFactoryClass *klass) {
+  klass->should_auto_attach = grex_directive_factory_should_auto_attach_default;
+}
+
+static void
+grex_directive_factory_init() {}
+
 /**
- * grex_directive_class_get_name:
- * @klass: The directive class to get the name of.
+ * grex_directive_factory_get_name: (virtual get_name)
  *
- * Returns the name assigned to the given directive class.
+ * Gets the name of the directive this factory creates.
  *
- * Returns: The directive's name, or NULL if none was set.
+ * Returns: The directive's name.
  */
 const char *
-grex_directive_class_get_name(GrexDirectiveClass *klass) {
-  return klass->priv->name;
+grex_directive_factory_get_name(GrexDirectiveFactory *factory) {
+  GrexDirectiveFactoryClass *klass = GREX_DIRECTIVE_FACTORY_GET_CLASS(factory);
+  g_return_val_if_fail(klass->get_name != NULL, NULL);
+
+  return klass->get_name(factory);
 }
 
 /**
- * grex_directive_class_get_auto_attach:
- * @klass: The directive class to get the auto attach type for.
+ * grex_directive_factory_create: (virtual create)
  *
- * Returns the type this directive with auto-attach to.
+ * Creates and returns a new #GrexDirective.
  *
- * Returns: The #GType, or 0 if none was set.
+ * Returns: (transfer full): The new directive.
  */
-GType
-grex_directive_class_get_auto_attach(GrexDirectiveClass *klass) {
-  return klass->priv->auto_attach_type;
+GrexDirective *
+grex_directive_factory_create(GrexDirectiveFactory *factory) {
+  GrexDirectiveFactoryClass *klass = GREX_DIRECTIVE_FACTORY_GET_CLASS(factory);
+  g_return_val_if_fail(klass->create != NULL, NULL);
+
+  return klass->create(factory);
 }
 
 /**
- * grex_directive_class_set_name:
- * @klass: The directive class.
- * @name: The new name.
+ * grex_directive_factory_should_auto_attach: (virtual should_auto_attach)
  *
- * Assigns the given name to the directive class.
+ * Creates and returns a new #GrexDirective.
+ *
+ * Returns: %TRUE if this factory's directive should be auto-attached to the
+ *          given fragment and host.
  */
-void
-grex_directive_class_set_name(GrexDirectiveClass *klass, const char *name) {
-  g_clear_pointer(&klass->priv->name, g_free);
-  klass->priv->name = g_strdup(name);
-}
+gboolean
+grex_directive_factory_should_auto_attach(GrexDirectiveFactory *factory,
+                                          GrexFragmentHost *host,
+                                          GrexFragment *fragment) {
+  GrexDirectiveFactoryClass *klass = GREX_DIRECTIVE_FACTORY_GET_CLASS(factory);
+  g_return_val_if_fail(klass->should_auto_attach != NULL, FALSE);
 
-/**
- * grex_directive_class_set_auto_attach:
- * @klass: The directive class.
- * @name: The new auto-attach type, or 0 to disable auto-attach support.
- *
- * Assigns the type this directive will attempt to auto-attach to.
- */
-void
-grex_directive_class_set_auto_attach(GrexDirectiveClass *klass,
-                                     GType auto_attach_type) {
-  klass->priv->auto_attach_type = auto_attach_type;
+  return klass->should_auto_attach(factory, host, fragment);
 }

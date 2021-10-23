@@ -390,7 +390,7 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
 
 /**
  * grex_fragment_host_get_leftover_attribute_directive:
- * @type: The attribute directive's type.
+ * @key: The attribute directive's key.
  *
  * Finds and returns the directive with the given key from the *previous*
  * inflation call, but only if another directive with the same key has not been
@@ -402,10 +402,10 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
  */
 GrexAttributeDirective *
 grex_fragment_host_get_leftover_attribute_directive(GrexFragmentHost *host,
-                                                    GType type) {
+                                                    guintptr key) {
   g_return_val_if_fail(host->in_inflation, NULL);
   return incremental_table_diff_get_leftover_value(&host->attr_directive_diff,
-                                                   type);
+                                                   key);
 }
 
 /**
@@ -438,27 +438,25 @@ grex_fragment_host_get_leftover_child(GrexFragmentHost *host, guintptr key) {
  * May only be called during an inflation.
  */
 void
-grex_fragment_host_add_attribute_directive(GrexFragmentHost *host,
+grex_fragment_host_add_attribute_directive(GrexFragmentHost *host, guintptr key,
                                            GrexAttributeDirective *directive) {
   g_return_if_fail(host->in_inflation);
 
-  GType type = G_OBJECT_TYPE(directive);
   if (incremental_table_diff_is_in_current_inflation(&host->attr_directive_diff,
-                                                     type)) {
-    g_warning("Attempted to add directive '%s' twice",
-              G_OBJECT_TYPE_NAME(directive));
+                                                     key)) {
+    g_warning("Attempted to add directive with key '%p' twice", (gpointer)key);
     return;
   }
 
   if (incremental_table_diff_get_leftover_value(&host->attr_directive_diff,
-                                                type) != directive) {
+                                                key) != directive) {
     GrexAttributeDirectiveClass *directive_class =
         GREX_ATTRIBUTE_DIRECTIVE_GET_CLASS(directive);
     directive_class->attach(directive, host);
   }
 
-  incremental_table_diff_add_to_current_inflation(
-      &host->attr_directive_diff, type, g_object_ref(directive));
+  incremental_table_diff_add_to_current_inflation(&host->attr_directive_diff,
+                                                  key, g_object_ref(directive));
   host->pending_attr_directive_updates =
       g_list_prepend(host->pending_attr_directive_updates, directive);
 }
