@@ -70,16 +70,16 @@ grex_widget_container_adapter_new() {
 }
 
 struct _GrexWidgetContainerAdapterDirective {
-  GrexAttributeDirective parent_instance;
+  GrexPropertyDirective parent_instance;
 };
 
 G_DEFINE_TYPE(GrexWidgetContainerAdapterDirective,
               grex_widget_container_adapter_directive,
-              GREX_TYPE_ATTRIBUTE_DIRECTIVE)
+              GREX_TYPE_PROPERTY_DIRECTIVE)
 
 static void
-grex_widget_container_adapter_directive_attach(
-    GrexAttributeDirective *directive, GrexFragmentHost *host) {
+grex_widget_container_adapter_directive_attach(GrexPropertyDirective *directive,
+                                               GrexFragmentHost *host) {
   g_autoptr(GrexContainerAdapter) adapter = grex_widget_container_adapter_new();
   grex_fragment_host_set_container_adapter(host, adapter);
 }
@@ -87,9 +87,10 @@ grex_widget_container_adapter_directive_attach(
 static void
 grex_widget_container_adapter_directive_class_init(
     GrexWidgetContainerAdapterDirectiveClass *klass) {
-  GrexAttributeDirectiveClass *attr_directive_class =
-      GREX_ATTRIBUTE_DIRECTIVE_CLASS(klass);
-  attr_directive_class->attach = grex_widget_container_adapter_directive_attach;
+  GrexPropertyDirectiveClass *property_directive_class =
+      GREX_PROPERTY_DIRECTIVE_CLASS(klass);
+  property_directive_class->attach =
+      grex_widget_container_adapter_directive_attach;
   // TODO: figure out how we want detaching to work
 }
 

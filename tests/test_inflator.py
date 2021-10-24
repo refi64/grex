@@ -19,12 +19,12 @@ def _create_box_fragment():
     return Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation())
 
 
-class _HelloLabelAttributeDirective(Grex.AttributeDirective):
+class _HelloLabelPropertyDirective(Grex.PropertyDirective):
     def do_update(self, host):
         host.get_target().set_text('hello')
 
 
-class _HelloLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
+class _HelloLabelPropertyDirectiveFactory(Grex.DirectiveFactory):
     def do_get_name(self):
         return 'test.hello-label'
 
@@ -32,12 +32,12 @@ class _HelloLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
         return Grex.DirectivePropertyFormat.NONE
 
     def do_create(self):
-        return _HelloLabelAttributeDirective()
+        return _HelloLabelPropertyDirective()
 
 
-class _PercentLabelAttributeDirective(Grex.AttributeDirective):
+class _PercentLabelPropertyDirective(Grex.PropertyDirective):
     def __init__(self) -> None:
-        super(_PercentLabelAttributeDirective, self).__init__()
+        super(_PercentLabelPropertyDirective, self).__init__()
 
         self._value = ''
 
@@ -53,7 +53,7 @@ class _PercentLabelAttributeDirective(Grex.AttributeDirective):
         host.add_property('label', Grex.ValueHolder.new(f'{self._value}%'))
 
 
-class _PercentLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
+class _PercentLabelPropertyDirectiveFactory(Grex.DirectiveFactory):
     def do_get_name(self):
         return 'test.percent-label'
 
@@ -61,12 +61,12 @@ class _PercentLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
         return Grex.DirectivePropertyFormat.IMPLICIT_VALUE
 
     def do_create(self):
-        return _PercentLabelAttributeDirective()
+        return _PercentLabelPropertyDirective()
 
 
-class _ExplicitPercentLabelAttributeDirective(Grex.AttributeDirective):
+class _ExplicitPercentLabelPropertyDirective(Grex.PropertyDirective):
     def __init__(self) -> None:
-        super(_ExplicitPercentLabelAttributeDirective, self).__init__()
+        super(_ExplicitPercentLabelPropertyDirective, self).__init__()
 
         self._percent = ''
         self._label = ''
@@ -92,7 +92,7 @@ class _ExplicitPercentLabelAttributeDirective(Grex.AttributeDirective):
             'label', Grex.ValueHolder.new(f'{self._percent}% {self._label}'))
 
 
-class _ExplicitPercentLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
+class _ExplicitPercentLabelPropertyDirectiveFactory(Grex.DirectiveFactory):
     def do_get_name(self):
         return 'test.explicit-percent-label'
 
@@ -100,15 +100,15 @@ class _ExplicitPercentLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
         return Grex.DirectivePropertyFormat.EXPLICIT
 
     def do_create(self):
-        return _ExplicitPercentLabelAttributeDirective()
+        return _ExplicitPercentLabelPropertyDirective()
 
 
-class _AutoLabelAttributeDirective(Grex.AttributeDirective):
+class _AutoLabelPropertyDirective(Grex.PropertyDirective):
     def do_update(self, host):
         host.get_target().set_text('auto')
 
 
-class _AutoLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
+class _AutoLabelPropertyDirectiveFactory(Grex.DirectiveFactory):
     def do_get_name(self):
         return 'test.auto-label'
 
@@ -116,7 +116,7 @@ class _AutoLabelAttributeDirectiveFactory(Grex.DirectiveFactory):
         return Grex.DirectivePropertyFormat.NONE
 
     def do_create(self):
-        return _AutoLabelAttributeDirective()
+        return _AutoLabelPropertyDirective()
 
     def do_should_auto_attach(self, host, fragment):
         return isinstance(host.get_target(), Gtk.Label)
@@ -165,10 +165,10 @@ def test_inflate_with_children():
     assert target.get_first_child().get_text() == 'hello'
 
 
-def test_inflate_with_attribute_directives():
+def test_inflate_with_property_directives():
     inflator = Grex.Inflator()
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [_HelloLabelAttributeDirectiveFactory()])
+                            [_HelloLabelPropertyDirectiveFactory()])
     fragment = _create_label_fragment()
     fragment.insert_binding('_test.hello-label', _build_constant_binding(''))
 
@@ -179,10 +179,10 @@ def test_inflate_with_attribute_directives():
     assert target.get_text() == 'hello'
 
 
-def test_inflate_with_attribute_directive_implicit_value():
+def test_inflate_with_property_directive_implicit_value():
     inflator = Grex.Inflator()
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [_PercentLabelAttributeDirectiveFactory()])
+                            [_PercentLabelPropertyDirectiveFactory()])
     fragment = _create_label_fragment()
     fragment.insert_binding('_test.percent-label',
                             _build_constant_binding('10'))
@@ -194,10 +194,10 @@ def test_inflate_with_attribute_directive_implicit_value():
     assert target.get_text() == '10%'
 
 
-def test_inflate_with_attribute_directive_explicit():
+def test_inflate_with_property_directive_explicit():
     inflator = Grex.Inflator()
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [_ExplicitPercentLabelAttributeDirectiveFactory()])
+                            [_ExplicitPercentLabelPropertyDirectiveFactory()])
     fragment = _create_label_fragment()
     fragment.insert_binding('_test.explicit-percent-label.percent',
                             _build_constant_binding('20'))
@@ -211,10 +211,10 @@ def test_inflate_with_attribute_directive_explicit():
     assert target.get_text() == '20% completed'
 
 
-def test_inflate_with_auto_attribute_directives():
+def test_inflate_with_auto_property_directives():
     inflator = Grex.Inflator()
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [_AutoLabelAttributeDirectiveFactory()])
+                            [_AutoLabelPropertyDirectiveFactory()])
     fragment = _create_label_fragment()
 
     target = Gtk.Label()

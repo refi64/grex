@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "grex-attribute-directive.h"
 #include "grex-config.h"
 #include "grex-container-adapter.h"
+#include "grex-property-directive.h"
 
 G_BEGIN_DECLS
 
@@ -23,7 +23,7 @@ GrexContainerAdapter *grex_child_property_container_adapter_new();
 G_DECLARE_FINAL_TYPE(GrexChildPropertyContainerAdapterDirective,
                      grex_child_property_container_adapter_directive, GREX,
                      CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE,
-                     GrexAttributeDirective)
+                     GrexPropertyDirective)
 
 #define GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE_FACTORY \
   grex_child_property_container_adapter_directive_factory_get_type()

@@ -204,29 +204,29 @@ grex_inflator_apply_properties(GrexInflator *inflator, GrexFragmentHost *host,
   }
 }
 
-static GrexAttributeDirective *
+static GrexPropertyDirective *
 add_directive(GrexFragmentHost *host, GrexDirectiveFactory *factory,
               GHashTable *inserted_directives) {
-  GrexAttributeDirective *directive =
+  GrexPropertyDirective *directive =
       g_hash_table_lookup(inserted_directives, factory);
   if (directive != NULL) {
     return directive;
   }
 
-  g_autoptr(GrexAttributeDirective) owned_directive = NULL;
-  directive = grex_fragment_host_get_leftover_attribute_directive(
+  g_autoptr(GrexPropertyDirective) owned_directive = NULL;
+  directive = grex_fragment_host_get_leftover_property_directive(
       host, (guintptr)factory);
   if (directive == NULL) {
     // Since we own a ref, it needs to be destroyed on function exit, so save it
     // into the owned version of the directive.
     directive = owned_directive =
-        GREX_ATTRIBUTE_DIRECTIVE(grex_directive_factory_create(factory));
+        GREX_PROPERTY_DIRECTIVE(grex_directive_factory_create(factory));
     g_return_val_if_fail(directive != NULL, NULL);
 
     g_object_unref(grex_fragment_host_new(G_OBJECT(directive)));
   }
 
-  grex_fragment_host_add_attribute_directive(host, (guintptr)factory,
+  grex_fragment_host_add_property_directive(host, (guintptr)factory,
                                              directive);
   g_hash_table_insert(inserted_directives, factory, directive);
 
@@ -293,7 +293,7 @@ grex_inflator_apply_explicit_directives(GrexInflator *inflator,
 
     GrexBinding *binding = grex_fragment_get_binding(fragment, name);
 
-    GrexAttributeDirective *directive =
+    GrexPropertyDirective *directive =
         add_directive(host, factory, inserted_directives);
     if (property != NULL) {
       GrexFragmentHost *directive_host =
@@ -331,7 +331,7 @@ grex_inflator_auto_attach_directives(GrexInflator *inflator,
         continue;
       }
 
-      GrexAttributeDirective *directive =
+      GrexPropertyDirective *directive =
           add_directive(host, factory, inserted_directives);
       GrexFragmentHost *directive_host =
           grex_fragment_host_for_target(G_OBJECT(directive));

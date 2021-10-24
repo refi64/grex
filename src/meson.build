@@ -14,7 +14,6 @@ grex_config_h = configure_file(
 )
 
 grex_sources = [
-  'grex-attribute-directive.c',
   'grex-binding.c',
   'grex-child-property-container-adapter.c',
   'grex-container-adapter.c',
@@ -24,6 +23,7 @@ grex_sources = [
   'grex-fragment.c',
   'grex-fragment-host.c',
   'grex-inflator.c',
+  'grex-property-directive.c',
   'grex-property-expression.c',
   'grex-reactive-inflator.c',
   'grex-source-location.c',
@@ -34,7 +34,6 @@ grex_sources = [
 
 grex_headers = [
   grex_config_h,
-  'grex-attribute-directive.h',
   'grex-binding.h',
   'grex-child-property-container-adapter.h',
   'grex-container-adapter.h',
@@ -45,6 +44,7 @@ grex_headers = [
   'grex-fragment-host.h',
   'grex-inflator.h',
   'grex-reactive-inflator.h',
+  'grex-property-directive.h',
   'grex-source-location.h',
   'grex-template.h',
   'grex-value-holder.h',

@@ -10,7 +10,7 @@
 
 G_BEGIN_DECLS
 
-typedef struct _GrexAttributeDirective GrexAttributeDirective;
+typedef struct _GrexPropertyDirective GrexPropertyDirective;
 
 #define GREX_TYPE_FRAGMENT_HOST grex_fragment_host_get_type()
 G_DECLARE_FINAL_TYPE(GrexFragmentHost, grex_fragment_host, GREX, FRAGMENT_HOST,
@@ -35,12 +35,12 @@ void grex_fragment_host_begin_inflation(GrexFragmentHost *host);
 void grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
                                      GrexValueHolder *value);
 
-GrexAttributeDirective *
-grex_fragment_host_get_leftover_attribute_directive(GrexFragmentHost *host,
+GrexPropertyDirective *
+grex_fragment_host_get_leftover_property_directive(GrexFragmentHost *host,
                                                     guintptr key);
 void
-grex_fragment_host_add_attribute_directive(GrexFragmentHost *host, guintptr key,
-                                           GrexAttributeDirective *directive);
+grex_fragment_host_add_property_directive(GrexFragmentHost *host, guintptr key,
+                                           GrexPropertyDirective *directive);
 
 void grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host);
 

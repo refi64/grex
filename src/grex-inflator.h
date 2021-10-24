@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "grex-attribute-directive.h"
 #include "grex-config.h"
 #include "grex-fragment-host.h"
 #include "grex-fragment.h"
+#include "grex-property-directive.h"
 
 G_BEGIN_DECLS
 

@@ -6,9 +6,9 @@ from gi.repository import Grex, Gtk
 from unittest.mock import MagicMock
 
 
-class _MockAttributeDirective(Grex.AttributeDirective):
+class _MockPropertyDirective(Grex.PropertyDirective):
     def __init__(self):
-        super(_MockAttributeDirective, self).__init__()
+        super(_MockPropertyDirective, self).__init__()
 
         self.mock_attach = MagicMock()
         self.mock_update = MagicMock()
@@ -29,11 +29,11 @@ class _MockAttributeDirective(Grex.AttributeDirective):
         self.mock_detach.reset_mock()
 
 
-class _AttributeDirectiveX(_MockAttributeDirective):
+class _PropertyDirectiveX(_MockPropertyDirective):
     pass
 
 
-class _AttributeDirectiveY(_MockAttributeDirective):
+class _PropertyDirectiveY(_MockPropertyDirective):
     pass
 
 
@@ -145,15 +145,15 @@ def test_fragment_inflation_children():
     assert y.get_parent() is None
 
 
-def test_fragment_host_inflation_attribute_directives():
+def test_fragment_host_inflation_property_directives():
     label = Gtk.Label()
     host = Grex.FragmentHost.new(label)
 
-    x = _AttributeDirectiveX()
-    y = _AttributeDirectiveY()
+    x = _PropertyDirectiveX()
+    y = _PropertyDirectiveY()
 
     host.begin_inflation()
-    host.add_attribute_directive(0, x)
+    host.add_property_directive(0, x)
     host.commit_inflation()
 
     x.mock_attach.assert_called_once_with(host)
@@ -163,10 +163,10 @@ def test_fragment_host_inflation_attribute_directives():
     x.reset_mocks()
 
     host.begin_inflation()
-    assert host.get_leftover_attribute_directive(0) == x
-    host.add_attribute_directive(0, x)
-    assert host.get_leftover_attribute_directive(0) is None
-    host.add_attribute_directive(1, y)
+    assert host.get_leftover_property_directive(0) == x
+    host.add_property_directive(0, x)
+    assert host.get_leftover_property_directive(0) is None
+    host.add_property_directive(1, y)
     host.commit_inflation()
 
     x.mock_attach.assert_not_called()
@@ -181,7 +181,7 @@ def test_fragment_host_inflation_attribute_directives():
     y.reset_mocks()
 
     host.begin_inflation()
-    host.add_attribute_directive(1, y)
+    host.add_property_directive(1, y)
     host.commit_inflation()
 
     x.mock_attach.assert_not_called()
@@ -210,7 +210,7 @@ def test_fragment_host_inflation_attribute_directives():
     y.reset_mocks()
 
     host.begin_inflation()
-    host.add_attribute_directive(1, y)
+    host.add_property_directive(1, y)
     host.commit_inflation()
 
     y.mock_attach.assert_called_once_with(host)

@@ -5,7 +5,7 @@
 #include "grex-fragment-host.h"
 
 #include "gpropz.h"
-#include "grex-attribute-directive.h"
+#include "grex-property-directive.h"
 
 G_DEFINE_QUARK("grex-fragment-host-on-target", grex_fragment_host_on_target)
 #define GREX_FRAGMENT_HOST_ON_TARGET (grex_fragment_host_on_target_quark())
@@ -104,8 +104,8 @@ struct _GrexFragmentHost {
   GObject *last_child;
 
   IncrementalTableDiff property_diff;
-  IncrementalTableDiff attr_directive_diff;
-  GList *pending_attr_directive_updates;
+  IncrementalTableDiff prop_directive_diff;
+  GList *pending_prop_directive_updates;
   IncrementalTableDiff children_diff;
 };
 
@@ -131,9 +131,9 @@ grex_fragment_host_constructed(GObject *object) {
 }
 
 static void
-detach_directive(GrexFragmentHost *host, GrexAttributeDirective *directive) {
-  GrexAttributeDirectiveClass *directive_class =
-      GREX_ATTRIBUTE_DIRECTIVE_GET_CLASS(directive);
+detach_directive(GrexFragmentHost *host, GrexPropertyDirective *directive) {
+  GrexPropertyDirectiveClass *directive_class =
+      GREX_PROPERTY_DIRECTIVE_GET_CLASS(directive);
   directive_class->detach(directive, host);
 }
 
@@ -143,7 +143,7 @@ detach_directives_in_table(GrexFragmentHost *host, GHashTable *table) {
   gpointer directive;
   g_hash_table_iter_init(&iter, table);
   while (g_hash_table_iter_next(&iter, NULL, &directive)) {
-    detach_directive(host, GREX_ATTRIBUTE_DIRECTIVE(directive));
+    detach_directive(host, GREX_PROPERTY_DIRECTIVE(directive));
   }
 }
 
@@ -152,12 +152,12 @@ grex_fragment_host_dispose(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
   g_clear_object(&host->container_adapter);  // NOLINT
 
-  detach_directives_in_table(host, host->attr_directive_diff.current);
-  detach_directives_in_table(host, host->attr_directive_diff.leftovers);
+  detach_directives_in_table(host, host->prop_directive_diff.current);
+  detach_directives_in_table(host, host->prop_directive_diff.leftovers);
 
   incremental_table_diff_clear(&host->property_diff);
-  incremental_table_diff_clear(&host->attr_directive_diff);
-  g_clear_pointer(&host->pending_attr_directive_updates,  // NOLINT
+  incremental_table_diff_clear(&host->prop_directive_diff);
+  g_clear_pointer(&host->pending_prop_directive_updates,  // NOLINT
                   g_list_free);
   incremental_table_diff_clear(&host->children_diff);
 }
@@ -223,7 +223,7 @@ grex_fragment_host_init(GrexFragmentHost *host) {
 
   incremental_table_diff_init(&host->property_diff, g_str_hash, g_str_equal,
                               g_free, (GDestroyNotify)grex_value_holder_unref);
-  incremental_table_diff_init(&host->attr_directive_diff, g_direct_hash,
+  incremental_table_diff_init(&host->prop_directive_diff, g_direct_hash,
                               g_direct_equal, NULL, g_object_unref);
   incremental_table_diff_init(&host->children_diff, g_direct_hash,
                               g_direct_equal, NULL, g_object_unref);
@@ -315,13 +315,13 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
   host->last_child = NULL;
 
   incremental_table_diff_begin_inflation(&host->property_diff);
-  incremental_table_diff_begin_inflation(&host->attr_directive_diff);
+  incremental_table_diff_begin_inflation(&host->prop_directive_diff);
   incremental_table_diff_begin_inflation(&host->children_diff);
 }
 
 /**
- * grex_fragment_host_get_leftover_attribute_directive:
- * @key: The attribute directive's key.
+ * grex_fragment_host_get_leftover_property_directive:
+ * @key: The property directive's key.
  *
  * Finds and returns the directive with the given key from the *previous*
  * inflation call, but only if another directive with the same key has not been
@@ -331,11 +331,11 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
  *
  * Returns: (transfer none): The directive, or NULL if none was found.
  */
-GrexAttributeDirective *
-grex_fragment_host_get_leftover_attribute_directive(GrexFragmentHost *host,
-                                                    guintptr key) {
+GrexPropertyDirective *
+grex_fragment_host_get_leftover_property_directive(GrexFragmentHost *host,
+                                                   guintptr key) {
   g_return_val_if_fail(host->in_inflation, NULL);
-  return incremental_table_diff_get_leftover_value(&host->attr_directive_diff,
+  return incremental_table_diff_get_leftover_value(&host->prop_directive_diff,
                                                    key);
 }
 
@@ -385,10 +385,10 @@ grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
 }
 
 /**
- * grex_fragment_host_add_attribute_directive:
+ * grex_fragment_host_add_property_directive:
  * @directive: The directive.
  *
- * Adds a new attribute directive to this fragment host. The directive's update
+ * Adds a new property directive to this fragment host. The directive's update
  * method will not be called until
  * #grex_fragment_host_apply_pending_directive_updates, or the inflation is
  * committed.
@@ -396,27 +396,27 @@ grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
  * May only be called during an inflation.
  */
 void
-grex_fragment_host_add_attribute_directive(GrexFragmentHost *host, guintptr key,
-                                           GrexAttributeDirective *directive) {
+grex_fragment_host_add_property_directive(GrexFragmentHost *host, guintptr key,
+                                          GrexPropertyDirective *directive) {
   g_return_if_fail(host->in_inflation);
 
-  if (incremental_table_diff_is_in_current_inflation(&host->attr_directive_diff,
+  if (incremental_table_diff_is_in_current_inflation(&host->prop_directive_diff,
                                                      key)) {
     g_warning("Attempted to add directive with key '%p' twice", (gpointer)key);
     return;
   }
 
-  if (incremental_table_diff_get_leftover_value(&host->attr_directive_diff,
+  if (incremental_table_diff_get_leftover_value(&host->prop_directive_diff,
                                                 key) != directive) {
-    GrexAttributeDirectiveClass *directive_class =
-        GREX_ATTRIBUTE_DIRECTIVE_GET_CLASS(directive);
+    GrexPropertyDirectiveClass *directive_class =
+        GREX_PROPERTY_DIRECTIVE_GET_CLASS(directive);
     directive_class->attach(directive, host);
   }
 
-  incremental_table_diff_add_to_current_inflation(&host->attr_directive_diff,
+  incremental_table_diff_add_to_current_inflation(&host->prop_directive_diff,
                                                   key, g_object_ref(directive));
-  host->pending_attr_directive_updates =
-      g_list_prepend(host->pending_attr_directive_updates, directive);
+  host->pending_prop_directive_updates =
+      g_list_prepend(host->pending_prop_directive_updates, directive);
 }
 
 /**
@@ -429,14 +429,14 @@ grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host) {
   g_return_if_fail(host->in_inflation);
 
   g_autoptr(GList) pending =
-      g_steal_pointer(&host->pending_attr_directive_updates);
+      g_steal_pointer(&host->pending_prop_directive_updates);
   for (GList *directive = pending; directive != NULL;
        directive = directive->next) {
-    GrexAttributeDirective *attr_directive =
-        GREX_ATTRIBUTE_DIRECTIVE(directive->data);
-    GrexAttributeDirectiveClass *directive_class =
-        GREX_ATTRIBUTE_DIRECTIVE_GET_CLASS(attr_directive);
-    directive_class->update(attr_directive, host);
+    GrexPropertyDirective *property_directive =
+        GREX_PROPERTY_DIRECTIVE(directive->data);
+    GrexPropertyDirectiveClass *directive_class =
+        GREX_PROPERTY_DIRECTIVE_GET_CLASS(property_directive);
+    directive_class->update(property_directive, host);
   }
 }
 
@@ -511,7 +511,7 @@ static void
 directive_detach_removal_callback(gpointer key, gpointer directive,
                                   gpointer user_data) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
-  detach_directive(host, GREX_ATTRIBUTE_DIRECTIVE(directive));
+  detach_directive(host, GREX_PROPERTY_DIRECTIVE(directive));
 }
 
 /**
@@ -531,7 +531,7 @@ grex_fragment_host_commit_inflation(GrexFragmentHost *host) {
   incremental_table_diff_commit_inflation(&host->property_diff,
                                           property_diff_removal_callback, host);
   incremental_table_diff_commit_inflation(
-      &host->attr_directive_diff, directive_detach_removal_callback, host);
+      &host->prop_directive_diff, directive_detach_removal_callback, host);
   incremental_table_diff_commit_inflation(&host->children_diff,
                                           child_diff_removal_callback, host);
 }
