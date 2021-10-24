@@ -81,6 +81,14 @@ def changed_handler(context):
     return changed_handler
 
 
+def test_constant_value_expression(context):
+    expr = Grex.constant_value_expression_new(Grex.SourceLocation(), 1)
+    assert expr.is_constant()
+
+    result = expr.evaluate(context, Grex.ExpressionEvaluationFlags.NONE)
+    assert result.get_value() == 1
+
+
 def test_property_expression_constant():
     expr = Grex.property_expression_new(Grex.SourceLocation(), None, 'value')
     assert not expr.is_constant()

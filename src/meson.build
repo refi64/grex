@@ -16,6 +16,7 @@ grex_config_h = configure_file(
 grex_sources = [
   'grex-binding.c',
   'grex-child-property-container-adapter.c',
+  'grex-constant-value-expression.c',
   'grex-container-adapter.c',
   'grex-directive.c',
   'grex-expression.c',

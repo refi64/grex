@@ -46,6 +46,9 @@ GrexValueHolder *grex_expression_evaluate(GrexExpression *expression,
                                           GrexExpressionEvaluationFlags flags,
                                           GError **error);
 
+GrexExpression *grex_constant_value_expression_new(GrexSourceLocation *location,
+                                                   const GValue *value);
+
 GrexExpression *grex_property_expression_new(GrexSourceLocation *location,
                                              GrexExpression *object,
                                              const char *name);
