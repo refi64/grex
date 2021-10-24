@@ -45,6 +45,21 @@ grex_directive_factory_get_name(GrexDirectiveFactory *factory) {
 }
 
 /**
+ * grex_directive_factory_get_property_format: (virtual get_property_format)
+ *
+ * Gets the format of property assignments for this factory's directive.
+ *
+ * Returns: The directive's property format.
+ */
+GrexDirectivePropertyFormat
+grex_directive_factory_get_property_format(GrexDirectiveFactory *factory) {
+  GrexDirectiveFactoryClass *klass = GREX_DIRECTIVE_FACTORY_GET_CLASS(factory);
+  g_return_val_if_fail(klass->get_property_format != NULL, 0);
+
+  return klass->get_property_format(factory);
+}
+
+/**
  * grex_directive_factory_create: (virtual create)
  *
  * Creates and returns a new #GrexDirective.

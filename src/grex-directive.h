@@ -8,6 +8,14 @@
 #include "grex-fragment-host.h"
 #include "grex-fragment.h"
 
+G_BEGIN_DECLS
+
+typedef enum {
+  GREX_DIRECTIVE_PROPERTY_FORMAT_NONE,
+  GREX_DIRECTIVE_PROPERTY_FORMAT_IMPLICIT_VALUE,
+  GREX_DIRECTIVE_PROPERTY_FORMAT_EXPLICIT,
+} GrexDirectivePropertyFormat;
+
 #define GREX_TYPE_DIRECTIVE grex_directive_get_type()
 G_DECLARE_DERIVABLE_TYPE(GrexDirective, grex_directive, GREX, DIRECTIVE,
                          GObject)
@@ -29,6 +37,9 @@ struct _GrexDirectiveFactoryClass {
 
   const char *(*get_name)(GrexDirectiveFactory *factory);
 
+  GrexDirectivePropertyFormat (*get_property_format)(
+      GrexDirectiveFactory *factory);
+
   GrexDirective *(*create)(GrexDirectiveFactory *factory);
 
   gboolean (*should_auto_attach)(GrexDirectiveFactory *factory,
@@ -39,9 +50,15 @@ struct _GrexDirectiveFactoryClass {
 };
 
 const char *grex_directive_factory_get_name(GrexDirectiveFactory *factory);
+
+GrexDirectivePropertyFormat
+grex_directive_factory_get_property_format(GrexDirectiveFactory *factory);
+
 GrexDirective *grex_directive_factory_create(GrexDirectiveFactory *factory);
 
 gboolean
 grex_directive_factory_should_auto_attach(GrexDirectiveFactory *factory,
                                           GrexFragmentHost *host,
                                           GrexFragment *fragment);
+
+G_END_DECLS

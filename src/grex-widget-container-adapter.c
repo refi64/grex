@@ -111,6 +111,12 @@ grex_widget_container_adapter_directive_factory_get_name(
   return "grex.widget-container-adapter";
 }
 
+static GrexDirectivePropertyFormat
+grex_widget_container_adapter_directive_factory_get_property_format(
+    GrexDirectiveFactory *factory) {
+  return GREX_DIRECTIVE_PROPERTY_FORMAT_NONE;
+}
+
 static GrexDirective *
 grex_widget_container_adapter_directive_factory_create(
     GrexDirectiveFactory *factory) {
@@ -124,6 +130,8 @@ grex_widget_container_adapter_directive_factory_class_init(
       GREX_DIRECTIVE_FACTORY_CLASS(klass);
   factory_class->get_name =
       grex_widget_container_adapter_directive_factory_get_name;
+  factory_class->get_property_format =
+      grex_widget_container_adapter_directive_factory_get_property_format;
   factory_class->create =
       grex_widget_container_adapter_directive_factory_create;
 }

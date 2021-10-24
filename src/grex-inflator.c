@@ -162,6 +162,29 @@ grex_inflator_add_directivesv(GrexInflator *inflator,
   }
 }
 
+static inline gboolean
+is_directive_name(const char *name) {
+  return *name == '_';
+}
+
+static void
+grex_inflator_apply_binding(GrexInflator *inflator, GrexFragmentHost *host,
+                            const char *name, GrexBinding *binding,
+                            gboolean track_dependencies) {
+  g_autoptr(GError) error = NULL;
+  g_autoptr(GrexValueHolder) result = grex_binding_evaluate(
+      binding, inflator->context, track_dependencies, &error);
+  if (result == NULL) {
+    GrexSourceLocation *location = grex_binding_get_location(binding);
+    g_autofree char *location_string = grex_source_location_format(location);
+    g_warning("%s: Failed to evaluate binding: %s", location_string,
+              error->message);
+    return;
+  }
+
+  grex_fragment_host_add_property(host, name, result);
+}
+
 static void
 grex_inflator_apply_properties(GrexInflator *inflator, GrexFragmentHost *host,
                                GrexFragment *fragment,
@@ -170,46 +193,115 @@ grex_inflator_apply_properties(GrexInflator *inflator, GrexFragmentHost *host,
 
   for (GList *target = targets; target != NULL; target = target->next) {
     const char *name = target->data;
-    if (g_hash_table_contains(inflator->directive_factories, name)) {
+    if (is_directive_name(name)) {
       // Skip it, it's a directive that is handled separately.
       continue;
     }
 
-    g_autoptr(GError) error = NULL;
-    GrexBinding *binding = grex_fragment_get_binding(fragment, target->data);
-
-    g_autoptr(GrexValueHolder) result = grex_binding_evaluate(
-        binding, inflator->context, track_dependencies, &error);
-    if (result == NULL) {
-      GrexSourceLocation *location = grex_fragment_get_location(fragment);
-      g_autofree char *location_string = grex_source_location_format(location);
-      g_warning("%s: Failed to evaluate binding: %s", location_string,
-                error->message);
-      continue;
-    }
-
-    grex_fragment_host_add_property(host, name, result);
+    grex_inflator_apply_binding(inflator, host, name,
+                                grex_fragment_get_binding(fragment, name),
+                                track_dependencies);
   }
 }
 
-static void
+static GrexAttributeDirective *
 add_directive(GrexFragmentHost *host, GrexDirectiveFactory *factory,
               GHashTable *inserted_directives) {
-  g_autoptr(GrexAttributeDirective) directive =
-      grex_fragment_host_get_leftover_attribute_directive(host,
-                                                          (guintptr)factory);
+  GrexAttributeDirective *directive =
+      g_hash_table_lookup(inserted_directives, factory);
   if (directive != NULL) {
-    g_object_ref(directive);
-  } else {
-    directive =
+    return directive;
+  }
+
+  g_autoptr(GrexAttributeDirective) owned_directive = NULL;
+  directive = grex_fragment_host_get_leftover_attribute_directive(
+      host, (guintptr)factory);
+  if (directive == NULL) {
+    // Since we own a ref, it needs to be destroyed on function exit, so save it
+    // into the owned version of the directive.
+    directive = owned_directive =
         GREX_ATTRIBUTE_DIRECTIVE(grex_directive_factory_create(factory));
+    g_return_val_if_fail(directive != NULL, NULL);
+
+    g_object_unref(grex_fragment_host_new(G_OBJECT(directive)));
   }
 
   grex_fragment_host_add_attribute_directive(host, (guintptr)factory,
                                              directive);
-  grex_fragment_host_apply_pending_directive_updates(host);
+  g_hash_table_insert(inserted_directives, factory, directive);
 
-  g_hash_table_add(inserted_directives, factory);
+  grex_fragment_host_begin_inflation(
+      grex_fragment_host_for_target(G_OBJECT(directive)));
+  return directive;
+}
+
+static void
+grex_inflator_apply_explicit_directives(GrexInflator *inflator,
+                                        GrexFragmentHost *host,
+                                        GrexFragment *fragment,
+                                        GHashTable *inserted_directives,
+                                        gboolean track_dependencies) {
+  g_autoptr(GList) targets = grex_fragment_get_binding_targets(fragment);
+  for (GList *target = targets; target != NULL; target = target->next) {
+    const char *name = target->data;
+    if (!is_directive_name(name)) {
+      continue;
+    }
+
+    const char *directive_binding_name = name + 1;
+
+    GrexDirectiveFactory *factory = g_hash_table_lookup(
+        inflator->directive_factories, directive_binding_name);
+    const char *property = NULL;
+    if (factory == NULL) {
+      // Try to find one with the last element of the name removed, using that
+      // as the property name.
+      const char *dot = strrchr(directive_binding_name, '.');
+      if (dot != NULL) {
+        g_autofree char *directive_name_only =
+            g_strndup(directive_binding_name, dot - directive_binding_name);
+        factory = g_hash_table_lookup(inflator->directive_factories,
+                                      directive_name_only);
+
+        if (factory != NULL) {
+          if (grex_directive_factory_get_property_format(factory) !=
+              GREX_DIRECTIVE_PROPERTY_FORMAT_EXPLICIT) {
+            g_warning(
+                "Directive '%s' does not take any explicitly named properties",
+                directive_name_only);
+            continue;
+          }
+
+          property = dot + 1;
+        }
+      }
+    } else {
+      switch (grex_directive_factory_get_property_format(factory)) {
+      case GREX_DIRECTIVE_PROPERTY_FORMAT_NONE:
+        // Nothing to assign.
+        property = NULL;
+        break;
+      case GREX_DIRECTIVE_PROPERTY_FORMAT_IMPLICIT_VALUE:
+        property = "value";
+        break;
+      case GREX_DIRECTIVE_PROPERTY_FORMAT_EXPLICIT:
+        g_warning("Directive '%s' requires a property name to set",
+                  directive_binding_name);
+        continue;
+      }
+    }
+
+    GrexBinding *binding = grex_fragment_get_binding(fragment, name);
+
+    GrexAttributeDirective *directive =
+        add_directive(host, factory, inserted_directives);
+    if (property != NULL) {
+      GrexFragmentHost *directive_host =
+          grex_fragment_host_for_target(G_OBJECT(directive));
+      grex_inflator_apply_binding(inflator, directive_host, property, binding,
+                                  track_dependencies);
+    }
+  }
 }
 
 static void
@@ -230,34 +322,64 @@ grex_inflator_auto_attach_directives(GrexInflator *inflator,
       continue;
     }
 
-    if (!g_hash_table_contains(inserted_directives, factory) &&
-        grex_directive_factory_should_auto_attach(factory, host, fragment)) {
-      add_directive(host, factory, inserted_directives);
+    if (grex_directive_factory_should_auto_attach(factory, host, fragment)) {
+      if (grex_directive_factory_get_property_format(factory) ==
+          GREX_DIRECTIVE_PROPERTY_FORMAT_EXPLICIT) {
+        g_warning(
+            "Cannot auto-assign directive '%s' requiring explicit properties",
+            name);
+        continue;
+      }
+
+      GrexAttributeDirective *directive =
+          add_directive(host, factory, inserted_directives);
+      GrexFragmentHost *directive_host =
+          grex_fragment_host_for_target(G_OBJECT(directive));
+
+      // If this requires a value, pass in the empty string.
+      if (grex_directive_factory_get_property_format(factory) ==
+          GREX_DIRECTIVE_PROPERTY_FORMAT_IMPLICIT_VALUE) {
+        GValue value = G_VALUE_INIT;
+        g_value_init(&value, G_TYPE_STRING);
+        g_value_set_static_string(&value, "");
+
+        g_autoptr(GrexBindingBuilder) binding_builder =
+            grex_binding_builder_new();
+        grex_binding_builder_add_constant(binding_builder, "", -1);
+        g_autoptr(GrexBinding) binding = grex_binding_builder_build(
+            binding_builder, grex_fragment_get_location(fragment));
+
+        grex_inflator_apply_binding(inflator, directive_host, "value", binding,
+                                    FALSE);
+      }
     }
   }
 }
 
 static void
+commit_directives(GHashTable *inserted_directives) {
+  GHashTableIter iter;
+  g_hash_table_iter_init(&iter, inserted_directives);
+
+  gpointer directive = NULL;
+  while (g_hash_table_iter_next(&iter, NULL, &directive)) {
+    GrexFragmentHost *host = grex_fragment_host_for_target(directive);
+    grex_fragment_host_commit_inflation(host);
+  }
+}
+
+static void
 grex_inflator_apply_directives(GrexInflator *inflator, GrexFragmentHost *host,
-                               GrexFragment *fragment) {
-  g_autoptr(GList) targets = grex_fragment_get_binding_targets(fragment);
+                               GrexFragment *fragment,
+                               gboolean track_dependencies) {
   g_autoptr(GHashTable) inserted_directives =
       g_hash_table_new(g_str_hash, g_str_equal);
 
-  for (GList *target = targets; target != NULL; target = target->next) {
-    const char *name = target->data;
-    GrexDirectiveFactory *factory =
-        g_hash_table_lookup(inflator->directive_factories, name);
-    if (factory == NULL) {
-      // Not a directive.
-      continue;
-    }
-
-    add_directive(host, factory, inserted_directives);
-  }
-
+  grex_inflator_apply_explicit_directives(
+      inflator, host, fragment, inserted_directives, track_dependencies);
   grex_inflator_auto_attach_directives(inflator, host, fragment,
                                        inserted_directives);
+  commit_directives(inserted_directives);
 }
 
 /**
@@ -300,9 +422,9 @@ grex_inflator_inflate_existing_target(GrexInflator *inflator, GObject *target,
 
   grex_fragment_host_begin_inflation(host);
 
-  grex_inflator_apply_properties(inflator, host, fragment,
-                                 flags & GREX_INFLATION_TRACK_DEPENDENCIES);
-  grex_inflator_apply_directives(inflator, host, fragment);
+  gboolean track_dependencies = flags & GREX_INFLATION_TRACK_DEPENDENCIES;
+  grex_inflator_apply_properties(inflator, host, fragment, track_dependencies);
+  grex_inflator_apply_directives(inflator, host, fragment, track_dependencies);
 
   g_autoptr(GList) children = grex_fragment_get_children(fragment);
   for (GList *child = children; child != NULL; child = child->next) {
