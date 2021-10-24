@@ -78,8 +78,15 @@ GrexExpression *
 grex_expression_parse(const char *string, gssize len,
                       GrexSourceLocation *location, GError **error) {
   // TODO: actual parsing
-  return grex_property_expression_new(
-      location, NULL, len != -1 ? g_strndup(string, len) : g_strdup(string));
+  if (g_ascii_isdigit(*string)) {
+    g_auto(GValue) value = G_VALUE_INIT;
+    g_value_init(&value, G_TYPE_LONG);
+    g_value_set_long(&value, strtol(string, NULL, 10));
+    return grex_constant_value_expression_new(location, &value);
+  } else {
+    return grex_property_expression_new(
+        location, NULL, len != -1 ? g_strndup(string, len) : g_strdup(string));
+  }
 }
 
 /**

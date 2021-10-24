@@ -33,7 +33,7 @@ grex_constant_value_expression_constructed(GObject *object) {
       GREX_CONSTANT_VALUE_EXPRESSION(object);
 
   g_warn_if_fail(const_expr->value != NULL);
-  g_warn_if_fail(grex_value_holder_can_push(const_expr->value));
+  g_warn_if_fail(!grex_value_holder_can_push(const_expr->value));
 }
 
 static void

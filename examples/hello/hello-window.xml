@@ -1,6 +1,6 @@
 <!-- Any copyright is dedicated to the Public Domain.
    - https://creativecommons.org/publicdomain/zero/1.0/ -->
 
-<HelloWindow title="Hello, Grex!" _grex.child-property-container-adapter="">
+<HelloWindow title="Hello, Grex!" default-width="[620]" default-height="[480]" _grex.child-property-container-adapter="">
   <GtkLabel label="[elapsed] second(s) elapsed" />
 </HelloWindow>
