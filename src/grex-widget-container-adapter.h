@@ -28,6 +28,9 @@ G_DECLARE_FINAL_TYPE(GrexWidgetContainerAdapterDirective,
 G_DECLARE_FINAL_TYPE(GrexWidgetContainerAdapterDirectiveFactory,
                      grex_widget_container_adapter_directive_factory, GREX,
                      WIDGET_CONTAINER_ADAPTER_DIRECTIVE_FACTORY,
-                     GrexDirectiveFactory)
+                     GrexPropertyDirectiveFactory)
+
+GrexWidgetContainerAdapterDirectiveFactory *
+grex_widget_container_adapter_directive_factory_new();
 
 G_END_DECLS

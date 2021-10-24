@@ -21,3 +21,28 @@ struct _GrexPropertyDirectiveClass {
 
   gpointer padding[13];
 };
+
+#define GREX_TYPE_PROPERTY_DIRECTIVE_FACTORY \
+  grex_property_directive_factory_get_type()
+G_DECLARE_DERIVABLE_TYPE(GrexPropertyDirectiveFactory,
+                         grex_property_directive_factory, GREX,
+                         PROPERTY_DIRECTIVE_FACTORY, GrexDirectiveFactory)
+
+struct _GrexPropertyDirectiveFactoryClass {
+  GrexDirectiveFactoryClass parent_class;
+
+  gboolean (*should_auto_attach)(GrexPropertyDirectiveFactory *factory,
+                                 GrexFragmentHost *host,
+                                 GrexFragment *fragment);
+
+  GrexPropertyDirective *(*create)(GrexPropertyDirectiveFactory *factory);
+
+  gpointer padding[15];
+};
+
+gboolean grex_property_directive_factory_should_auto_attach(
+    GrexPropertyDirectiveFactory *factory, GrexFragmentHost *host,
+    GrexFragment *fragment);
+
+GrexPropertyDirective *
+grex_property_directive_factory_create(GrexPropertyDirectiveFactory *factory);

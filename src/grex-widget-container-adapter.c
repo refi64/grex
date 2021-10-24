@@ -99,12 +99,12 @@ grex_widget_container_adapter_directive_init(
     GrexWidgetContainerAdapterDirective *directive) {}
 
 struct _GrexWidgetContainerAdapterDirectiveFactory {
-  GrexDirectiveFactory parent_instance;
+  GrexPropertyDirectiveFactory parent_instance;
 };
 
 G_DEFINE_TYPE(GrexWidgetContainerAdapterDirectiveFactory,
               grex_widget_container_adapter_directive_factory,
-              GREX_TYPE_DIRECTIVE_FACTORY)
+              GREX_TYPE_PROPERTY_DIRECTIVE_FACTORY)
 
 static const char *
 grex_widget_container_adapter_directive_factory_get_name(
@@ -118,9 +118,9 @@ grex_widget_container_adapter_directive_factory_get_property_format(
   return GREX_DIRECTIVE_PROPERTY_FORMAT_NONE;
 }
 
-static GrexDirective *
+static GrexPropertyDirective *
 grex_widget_container_adapter_directive_factory_create(
-    GrexDirectiveFactory *factory) {
+    GrexPropertyDirectiveFactory *factory) {
   return g_object_new(GREX_TYPE_WIDGET_CONTAINER_ADAPTER_DIRECTIVE, NULL);
 }
 
@@ -133,10 +133,19 @@ grex_widget_container_adapter_directive_factory_class_init(
       grex_widget_container_adapter_directive_factory_get_name;
   factory_class->get_property_format =
       grex_widget_container_adapter_directive_factory_get_property_format;
-  factory_class->create =
+
+  GrexPropertyDirectiveFactoryClass *prop_factory_class =
+      GREX_PROPERTY_DIRECTIVE_FACTORY_CLASS(klass);
+  prop_factory_class->create =
       grex_widget_container_adapter_directive_factory_create;
 }
 
 static void
 grex_widget_container_adapter_directive_factory_init(
     GrexWidgetContainerAdapterDirectiveFactory *factory) {}
+
+GrexWidgetContainerAdapterDirectiveFactory *
+grex_widget_container_adapter_directive_factory_new() {
+  return g_object_new(GREX_TYPE_WIDGET_CONTAINER_ADAPTER_DIRECTIVE_FACTORY,
+                      NULL);
+}

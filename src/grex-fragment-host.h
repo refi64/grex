@@ -11,6 +11,7 @@
 G_BEGIN_DECLS
 
 typedef struct _GrexPropertyDirective GrexPropertyDirective;
+typedef struct _GrexStructuralDirective GrexStructuralDirective;
 
 #define GREX_TYPE_FRAGMENT_HOST grex_fragment_host_get_type()
 G_DECLARE_FINAL_TYPE(GrexFragmentHost, grex_fragment_host, GREX, FRAGMENT_HOST,
@@ -37,12 +38,18 @@ void grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
 
 GrexPropertyDirective *
 grex_fragment_host_get_leftover_property_directive(GrexFragmentHost *host,
-                                                    guintptr key);
+                                                   guintptr key);
 void
 grex_fragment_host_add_property_directive(GrexFragmentHost *host, guintptr key,
-                                           GrexPropertyDirective *directive);
+                                          GrexPropertyDirective *directive);
 
 void grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host);
+
+GrexStructuralDirective *
+grex_fragment_host_get_leftover_structural_directive(GrexFragmentHost *host,
+                                                     guintptr key);
+void grex_fragment_host_add_structural_directive(
+    GrexFragmentHost *host, guintptr key, GrexStructuralDirective *directive);
 
 GObject *grex_fragment_host_get_leftover_child(GrexFragmentHost *host,
                                                guintptr key);

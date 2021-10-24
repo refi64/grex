@@ -14,17 +14,8 @@ grex_directive_class_init(GrexDirectiveClass *klass) {}
 static void
 grex_directive_init(GrexDirective *directive) {}
 
-static gboolean
-grex_directive_factory_should_auto_attach_default(GrexDirectiveFactory *factory,
-                                                  GrexFragmentHost *host,
-                                                  GrexFragment *fragment) {
-  return FALSE;
-}
-
 static void
-grex_directive_factory_class_init(GrexDirectiveFactoryClass *klass) {
-  klass->should_auto_attach = grex_directive_factory_should_auto_attach_default;
-}
+grex_directive_factory_class_init(GrexDirectiveFactoryClass *klass) {}
 
 static void
 grex_directive_factory_init() {}
@@ -57,37 +48,4 @@ grex_directive_factory_get_property_format(GrexDirectiveFactory *factory) {
   g_return_val_if_fail(klass->get_property_format != NULL, 0);
 
   return klass->get_property_format(factory);
-}
-
-/**
- * grex_directive_factory_create: (virtual create)
- *
- * Creates and returns a new #GrexDirective.
- *
- * Returns: (transfer full): The new directive.
- */
-GrexDirective *
-grex_directive_factory_create(GrexDirectiveFactory *factory) {
-  GrexDirectiveFactoryClass *klass = GREX_DIRECTIVE_FACTORY_GET_CLASS(factory);
-  g_return_val_if_fail(klass->create != NULL, NULL);
-
-  return klass->create(factory);
-}
-
-/**
- * grex_directive_factory_should_auto_attach: (virtual should_auto_attach)
- *
- * Creates and returns a new #GrexDirective.
- *
- * Returns: %TRUE if this factory's directive should be auto-attached to the
- *          given fragment and host.
- */
-gboolean
-grex_directive_factory_should_auto_attach(GrexDirectiveFactory *factory,
-                                          GrexFragmentHost *host,
-                                          GrexFragment *fragment) {
-  GrexDirectiveFactoryClass *klass = GREX_DIRECTIVE_FACTORY_GET_CLASS(factory);
-  g_return_val_if_fail(klass->should_auto_attach != NULL, FALSE);
-
-  return klass->should_auto_attach(factory, host, fragment);
 }

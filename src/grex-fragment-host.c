@@ -74,11 +74,14 @@ incremental_table_diff_commit_inflation(
     IncrementalTableDiff *diff, IncrementalTableDiffRemovalCallback callback,
     gpointer user_data) {
   // Remove all the values that weren't added in this inflation.
-  GHashTableIter iter;
-  gpointer key, value;
-  g_hash_table_iter_init(&iter, diff->leftovers);
-  while (g_hash_table_iter_next(&iter, &key, &value)) {
-    callback(key, value, user_data);
+
+  if (callback != NULL) {
+    GHashTableIter iter;
+    gpointer key, value;
+    g_hash_table_iter_init(&iter, diff->leftovers);
+    while (g_hash_table_iter_next(&iter, &key, &value)) {
+      callback(key, value, user_data);
+    }
   }
 
   g_hash_table_remove_all(diff->leftovers);
@@ -106,6 +109,7 @@ struct _GrexFragmentHost {
   IncrementalTableDiff property_diff;
   IncrementalTableDiff prop_directive_diff;
   GList *pending_prop_directive_updates;
+  IncrementalTableDiff struct_directive_diff;
   IncrementalTableDiff children_diff;
 };
 
@@ -159,6 +163,7 @@ grex_fragment_host_dispose(GObject *object) {
   incremental_table_diff_clear(&host->prop_directive_diff);
   g_clear_pointer(&host->pending_prop_directive_updates,  // NOLINT
                   g_list_free);
+  incremental_table_diff_clear(&host->struct_directive_diff);
   incremental_table_diff_clear(&host->children_diff);
 }
 
@@ -224,6 +229,8 @@ grex_fragment_host_init(GrexFragmentHost *host) {
   incremental_table_diff_init(&host->property_diff, g_str_hash, g_str_equal,
                               g_free, (GDestroyNotify)grex_value_holder_unref);
   incremental_table_diff_init(&host->prop_directive_diff, g_direct_hash,
+                              g_direct_equal, NULL, g_object_unref);
+  incremental_table_diff_init(&host->struct_directive_diff, g_direct_hash,
                               g_direct_equal, NULL, g_object_unref);
   incremental_table_diff_init(&host->children_diff, g_direct_hash,
                               g_direct_equal, NULL, g_object_unref);
@@ -317,6 +324,7 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
   incremental_table_diff_begin_inflation(&host->property_diff);
   incremental_table_diff_begin_inflation(&host->prop_directive_diff);
   incremental_table_diff_begin_inflation(&host->children_diff);
+  incremental_table_diff_begin_inflation(&host->struct_directive_diff);
 }
 
 /**
@@ -336,6 +344,26 @@ grex_fragment_host_get_leftover_property_directive(GrexFragmentHost *host,
                                                    guintptr key) {
   g_return_val_if_fail(host->in_inflation, NULL);
   return incremental_table_diff_get_leftover_value(&host->prop_directive_diff,
+                                                   key);
+}
+
+/**
+ * grex_fragment_host_get_leftover_structural_directive:
+ * @key: The structural directive's key.
+ *
+ * Finds and returns the directive with the given key from the *previous*
+ * inflation call, but only if another directive with the same key has not been
+ * added to the current inflation.
+ *
+ * May only be called during an inflation.
+ *
+ * Returns: (transfer none): The directive, or NULL if none was found.
+ */
+GrexStructuralDirective *
+grex_fragment_host_get_leftover_structural_directive(GrexFragmentHost *host,
+                                                     guintptr key) {
+  g_return_val_if_fail(host->in_inflation, NULL);
+  return incremental_table_diff_get_leftover_value(&host->struct_directive_diff,
                                                    key);
 }
 
@@ -441,6 +469,29 @@ grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host) {
 }
 
 /**
+ * grex_fragment_host_add_structural_directive:
+ * @directive: The directive.
+ *
+ * Adds a new structural directive to this fragment host.
+ *
+ * May only be called during an inflation.
+ */
+void
+grex_fragment_host_add_structural_directive(
+    GrexFragmentHost *host, guintptr key, GrexStructuralDirective *directive) {
+  g_return_if_fail(host->in_inflation);
+
+  if (incremental_table_diff_is_in_current_inflation(
+          &host->struct_directive_diff, key)) {
+    g_warning("Attempted to add directive with key '%p' twice", (gpointer)key);
+    return;
+  }
+
+  incremental_table_diff_add_to_current_inflation(&host->struct_directive_diff,
+                                                  key, g_object_ref(directive));
+}
+
+/**
  * grex_fragment_host_add_inflated_child:
  * @key: The child's key.
  * @child: The child object.
@@ -508,8 +559,8 @@ child_diff_removal_callback(gpointer key, gpointer child, gpointer user_data) {
 }
 
 static void
-directive_detach_removal_callback(gpointer key, gpointer directive,
-                                  gpointer user_data) {
+property_directive_detach_removal_callback(gpointer key, gpointer directive,
+                                           gpointer user_data) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
   detach_directive(host, GREX_PROPERTY_DIRECTIVE(directive));
 }
@@ -531,7 +582,10 @@ grex_fragment_host_commit_inflation(GrexFragmentHost *host) {
   incremental_table_diff_commit_inflation(&host->property_diff,
                                           property_diff_removal_callback, host);
   incremental_table_diff_commit_inflation(
-      &host->prop_directive_diff, directive_detach_removal_callback, host);
+      &host->prop_directive_diff, property_directive_detach_removal_callback,
+      host);
+  incremental_table_diff_commit_inflation(&host->struct_directive_diff, NULL,
+                                          NULL);
   incremental_table_diff_commit_inflation(&host->children_diff,
                                           child_diff_removal_callback, host);
 }

@@ -40,12 +40,6 @@ struct _GrexDirectiveFactoryClass {
   GrexDirectivePropertyFormat (*get_property_format)(
       GrexDirectiveFactory *factory);
 
-  GrexDirective *(*create)(GrexDirectiveFactory *factory);
-
-  gboolean (*should_auto_attach)(GrexDirectiveFactory *factory,
-                                 GrexFragmentHost *host,
-                                 GrexFragment *fragment);
-
   gpointer padding[12];
 };
 
@@ -53,12 +47,5 @@ const char *grex_directive_factory_get_name(GrexDirectiveFactory *factory);
 
 GrexDirectivePropertyFormat
 grex_directive_factory_get_property_format(GrexDirectiveFactory *factory);
-
-GrexDirective *grex_directive_factory_create(GrexDirectiveFactory *factory);
-
-gboolean
-grex_directive_factory_should_auto_attach(GrexDirectiveFactory *factory,
-                                          GrexFragmentHost *host,
-                                          GrexFragment *fragment);
 
 G_END_DECLS

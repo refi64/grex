@@ -30,7 +30,7 @@ G_DECLARE_FINAL_TYPE(GrexChildPropertyContainerAdapterDirective,
 G_DECLARE_FINAL_TYPE(GrexChildPropertyContainerAdapterDirectiveFactory,
                      grex_child_property_container_adapter_directive_factory,
                      GREX, CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE_FACTORY,
-                     GrexDirectiveFactory)
+                     GrexPropertyDirectiveFactory)
 
 GrexChildPropertyContainerAdapterDirectiveFactory *
 grex_child_property_container_adapter_directive_factory_new();

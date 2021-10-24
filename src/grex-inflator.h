@@ -16,10 +16,15 @@ typedef enum {
   GREX_INFLATOR_DIRECTIVE_NO_AUTO_ATTACH = 1 << 0,
 } GrexInflatorDirectiveFlags;
 
-typedef enum {
+typedef enum _GrexInflationFlags {
   GREX_INFLATION_NONE = 0,
   GREX_INFLATION_TRACK_DEPENDENCIES = 1 << 0,
 } GrexInflationFlags;
+
+typedef enum _GrexChildInflationFlags {
+  GREX_CHILD_INFLATION_NONE = 0,
+  GREX_CHILD_INFLATION_IGNORE_STRUCTURAL_DIRECTIVES = 1 << 0,
+} GrexChildInflationFlags;
 
 #define GREX_TYPE_INFLATOR grex_inflator_get_type()
 G_DECLARE_FINAL_TYPE(GrexInflator, grex_inflator, GREX, INFLATOR, GObject)
@@ -50,6 +55,7 @@ void grex_inflator_inflate_existing_target(GrexInflator *inflator,
 
 void grex_inflator_inflate_child(GrexInflator *inflator,
                                  GrexFragmentHost *parent, guintptr key,
-                                 GrexFragment *child, GrexInflationFlags flags);
+                                 GrexFragment *child, GrexInflationFlags flags,
+                                 GrexChildInflationFlags child_flags);
 
 G_END_DECLS
