@@ -216,7 +216,8 @@ grex_inflator_apply_properties(GrexInflator *inflator, GrexFragmentHost *host,
 
   for (GList *target = targets; target != NULL; target = target->next) {
     const char *name = target->data;
-    if (parse_property_directive_name(name) != NULL) {
+    if (parse_property_directive_name(name) != NULL ||
+        parse_structural_directive_name(name) != NULL) {
       // Skip it, it's a directive that is handled separately.
       continue;
     }
