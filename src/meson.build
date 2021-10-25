@@ -31,6 +31,7 @@ grex_sources = [
   'grex-structural-directive.c',
   'grex-template.c',
   'grex-value-holder.c',
+  'grex-value-parser.c',
   'grex-widget-container-adapter.c',
 ]
 
@@ -51,6 +52,7 @@ grex_headers = [
   'grex-structural-directive.h',
   'grex-template.h',
   'grex-value-holder.h',
+  'grex-value-parser.h',
   'grex-widget-container-adapter.h',
 ]
 

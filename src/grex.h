@@ -19,6 +19,7 @@
 #include "grex-structural-directive.h"
 #include "grex-template.h"
 #include "grex-value-holder.h"
+#include "grex-value-parser.h"
 #include "grex-widget-container-adapter.h"
 
 #undef _GREX_ALLOW_INDIVIDUAL_HEADERS
