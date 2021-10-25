@@ -83,6 +83,12 @@ grex_expression_parse(const char *string, gssize len,
     g_value_init(&value, G_TYPE_LONG);
     g_value_set_long(&value, strtol(string, NULL, 10));
     return grex_constant_value_expression_new(location, &value);
+  } else if (strncmp(string, "true", len) == 0 ||
+             strncmp(string, "false", len) == 0) {
+    g_auto(GValue) value = G_VALUE_INIT;
+    g_value_init(&value, G_TYPE_BOOLEAN);
+    g_value_set_boolean(&value, *string == 't');
+    return grex_constant_value_expression_new(location, &value);
   } else {
     return grex_property_expression_new(
         location, NULL, len != -1 ? g_strndup(string, len) : g_strdup(string));
