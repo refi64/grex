@@ -13,6 +13,8 @@
 #include "grex-expression.h"
 #include "grex-fragment-host.h"
 #include "grex-fragment.h"
+#include "grex-gtk-box-container-adapter.h"
+#include "grex-if-directive.h"
 #include "grex-inflator.h"
 #include "grex-reactive-inflator.h"
 #include "grex-source-location.h"
