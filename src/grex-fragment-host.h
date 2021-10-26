@@ -35,6 +35,8 @@ void grex_fragment_host_begin_inflation(GrexFragmentHost *host);
 
 void grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
                                      GrexValueHolder *value);
+void grex_fragment_host_add_signal(GrexFragmentHost *host, const char *signal,
+                                   GClosure *closure, gboolean after);
 
 GrexPropertyDirective *
 grex_fragment_host_get_leftover_property_directive(GrexFragmentHost *host,

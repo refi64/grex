@@ -82,6 +82,37 @@ def test_fragment_host_properties():
     assert label.get_wrap()
 
 
+def test_fragment_host_signal():
+    switch = Gtk.Switch(active=False)
+    host = Grex.FragmentHost.new(switch)
+
+    handler = MagicMock()
+
+    host.begin_inflation()
+    host.add_signal('notify::active', handler, False)
+    host.commit_inflation()
+
+    switch.set_active(True)
+    handler.assert_called_once_with(switch, Gtk.Switch.find_property('active'))
+
+    handler.reset_mock()
+
+    host.begin_inflation()
+    host.add_property('active', Grex.ValueHolder(False))
+    host.add_signal('notify::active', handler, False)
+    host.commit_inflation()
+
+    handler.assert_not_called()
+
+    handler.reset_mock()
+
+    host.begin_inflation()
+    host.commit_inflation()
+
+    switch.set_active(True)
+    handler.assert_not_called()
+
+
 def test_fragment_inflation_children():
     box = Gtk.Box()
     host = Grex.FragmentHost.new(box)

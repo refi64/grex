@@ -108,6 +108,7 @@ struct _GrexFragmentHost {
   GObject *last_child;
 
   IncrementalTableDiff property_diff;
+  IncrementalTableDiff signal_diff;
   IncrementalTableDiff prop_directive_diff;
   GList *pending_prop_directive_updates;
   IncrementalTableDiff struct_directive_diff;
@@ -161,6 +162,7 @@ grex_fragment_host_dispose(GObject *object) {
   detach_directives_in_table(host, host->prop_directive_diff.leftovers);
 
   incremental_table_diff_clear(&host->property_diff);
+  incremental_table_diff_clear(&host->signal_diff);
   incremental_table_diff_clear(&host->prop_directive_diff);
   g_clear_pointer(&host->pending_prop_directive_updates,  // NOLINT
                   g_list_free);
@@ -229,6 +231,8 @@ grex_fragment_host_init(GrexFragmentHost *host) {
 
   incremental_table_diff_init(&host->property_diff, g_str_hash, g_str_equal,
                               g_free, (GDestroyNotify)grex_value_holder_unref);
+  incremental_table_diff_init(&host->signal_diff, g_str_hash, g_str_equal,
+                              g_free, NULL);
   incremental_table_diff_init(&host->prop_directive_diff, g_direct_hash,
                               g_direct_equal, NULL, g_object_unref);
   incremental_table_diff_init(&host->struct_directive_diff, g_direct_hash,
@@ -308,6 +312,19 @@ grex_fragment_host_matches_fragment_type(GrexFragmentHost *host,
   return type == grex_fragment_get_target_type(fragment);
 }
 
+void
+grex_fragment_host_clear_all_signal_handlers(GrexFragmentHost *host) {
+  GObject *target = grex_fragment_host_get_target(host);
+
+  GHashTableIter iter;
+  g_hash_table_iter_init(&iter, host->signal_diff.current);
+
+  gpointer id;
+  while (g_hash_table_iter_next(&iter, NULL, &id)) {
+    g_signal_handler_disconnect(target, (gulong)id);
+  }
+}
+
 /**
  * grex_fragment_host_begin_inflation:
  *
@@ -321,6 +338,10 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
   host->in_inflation = TRUE;
 
   host->last_child = NULL;
+
+  // We have no way of checking for duplicate signals atm, so just clear them
+  // all out at the start of the inflation.
+  grex_fragment_host_clear_all_signal_handlers(host);
 
   incremental_table_diff_begin_inflation(&host->property_diff);
   incremental_table_diff_begin_inflation(&host->prop_directive_diff);
@@ -436,6 +457,28 @@ grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
   incremental_table_diff_add_to_current_inflation(&host->property_diff,
                                                   (guintptr)g_strdup(name),
                                                   grex_value_holder_ref(value));
+}
+
+/**
+ * grex_fragment_host_add_signal:
+ * @signal: The signal name.
+ * @closure: The closure to connect to.
+ *
+ * Adds a new signal handler to this fragment and connects it to the target
+ * object.
+ *
+ * May only be called during an inflation.
+ */
+void
+grex_fragment_host_add_signal(GrexFragmentHost *host, const char *signal,
+                              GClosure *closure, gboolean after) {
+  g_return_if_fail(host->in_inflation);
+
+  GObject *target = grex_fragment_host_get_target(host);
+  gulong id = g_signal_connect_closure(target, signal, closure, after);
+
+  incremental_table_diff_add_to_current_inflation(
+      &host->signal_diff, (guintptr)g_strdup(signal), (gpointer)id);
 }
 
 /**
@@ -607,6 +650,7 @@ grex_fragment_host_commit_inflation(GrexFragmentHost *host) {
 
   incremental_table_diff_commit_inflation(&host->property_diff,
                                           property_diff_removal_callback, host);
+  incremental_table_diff_commit_inflation(&host->signal_diff, NULL, NULL);
   incremental_table_diff_commit_inflation(
       &host->prop_directive_diff, property_directive_detach_removal_callback,
       host);
