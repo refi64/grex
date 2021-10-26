@@ -57,6 +57,13 @@ const HelloWindow = GObject.registerClass({
       GObject.ParamFlags.READWRITE,
       0
     ),
+    'timer-visible': GObject.ParamSpec.boolean(
+      'timer-visible',
+      'Timer visible',
+      'Determines if the timer is currently visible.',
+      GObject.ParamFlags.READWRITE,
+      true
+    ),
   },
 }, class HelloWindow extends Gtk.ApplicationWindow {
   static template
@@ -72,7 +79,11 @@ const HelloWindow = GObject.registerClass({
     this.inflator = HelloWindow.template.create_inflator(this)
     this.inflator.get_base_inflator().add_directives(
       Grex.InflatorDirectiveFlags.FLAGS_NONE,
-      [new Grex.ChildPropertyContainerAdapterDirectiveFactory()])
+      [
+        new Grex.IfDirectiveFactory(),
+        new Grex.ChildPropertyContainerAdapterDirectiveFactory(),
+        new Grex.GtkBoxContainerAdapterDirectiveFactory(),
+      ])
     this.inflator.inflate()
 
     this.timer_source = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 1, () => {

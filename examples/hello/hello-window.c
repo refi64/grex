@@ -11,6 +11,7 @@ struct _HelloWindow {
   GtkApplicationWindow parent_instance;
 
   int elapsed;
+  gboolean timer_visible;
   guint timer_source;
 
   GrexReactiveInflator *inflator;
@@ -20,6 +21,7 @@ G_DEFINE_TYPE(HelloWindow, hello_window, GTK_TYPE_APPLICATION_WINDOW)
 
 enum {
   PROP_ELAPSED = 1,
+  PROP_TIMER_VISIBLE,
   N_PROPS,
 };
 
@@ -56,6 +58,13 @@ hello_window_class_init(HelloWindowClass *klass) {
   gpropz_install_property(object_class, HelloWindow, elapsed, PROP_ELAPSED,
                           properties[PROP_ELAPSED], NULL);
 
+  properties[PROP_TIMER_VISIBLE] = g_param_spec_boolean(
+      "timer-visible", "Timer visible",
+      "Determines if the timer is currently visible.", TRUE, G_PARAM_READWRITE);
+  gpropz_install_property(object_class, HelloWindow, timer_visible,
+                          PROP_TIMER_VISIBLE, properties[PROP_TIMER_VISIBLE],
+                          NULL);
+
   template = grex_template_new_from_resource(
       "/org/hello/Hello/hello-window.xml", NULL);
   g_warn_if_fail(template != NULL);
@@ -73,11 +82,14 @@ on_second(gpointer user_data) {
 
 static void
 hello_window_init(HelloWindow *window) {
+  window->timer_visible = TRUE;
+
   window->inflator = grex_template_create_inflator(template, G_OBJECT(window));
   grex_inflator_take_directives(
       grex_reactive_inflator_get_base_inflator(window->inflator),
-      GREX_INFLATOR_DIRECTIVE_NONE,
-      grex_child_property_container_adapter_directive_factory_new(), NULL);
+      GREX_INFLATOR_DIRECTIVE_NONE, grex_if_directive_factory_new(),
+      grex_child_property_container_adapter_directive_factory_new(),
+      grex_gtk_box_container_adapter_directive_factory_new(), NULL);
 
   grex_reactive_inflator_inflate(window->inflator);
 

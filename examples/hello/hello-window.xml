@@ -2,5 +2,11 @@
    - https://creativecommons.org/publicdomain/zero/1.0/ -->
 
 <HelloWindow title="Hello, Grex!" default-width="[620]" default-height="[480]" _grex.child-property-container-adapter="">
-  <GtkLabel label="[elapsed] second(s) elapsed" />
+  <GtkBox orientation="horizontal" hexpand="[true]" valign="center" margin-start="[16]" margin-end="[16]">
+    <GtkBox orientation="horizontal" hexpand="[true]" halign="start">
+      <GtkLabel label="Show the timer" halign="start" margin-end="[16]" />
+      <GtkSwitch active="{timer-visible}" halign="end" />
+    </GtkBox>
+    <GtkLabel __grex.if="[timer-visible]" label="[elapsed] second(s) elapsed" />
+  </GtkBox>
 </HelloWindow>
