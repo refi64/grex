@@ -435,23 +435,42 @@ grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
   }
 
   const GValue *actual_value = grex_value_holder_get_value(value);
-  if (g_value_type_transformable(actual_value->g_type, pspec->value_type)) {
-    g_object_set_property(target, name, actual_value);
+
+  g_auto(GValue) transformed_value = G_VALUE_INIT;
+  g_value_init(&transformed_value, pspec->value_type);
+
+  g_autoptr(GrexValueHolder) parsed_value = NULL;
+
+  // Now, we make sure actual_value is of the same type as the property.
+  if (actual_value->g_type == pspec->value_type) {
+    // Nothing to do.
+  } else if (g_value_type_transformable(actual_value->g_type,
+                                        pspec->value_type)) {
+    g_value_transform(actual_value, &transformed_value);
+    actual_value = &transformed_value;
   } else if (actual_value->g_type == G_TYPE_STRING) {
     GrexValueParser *parser = grex_value_parser_default();
     g_autoptr(GError) error = NULL;
 
-    g_autoptr(GrexValueHolder) parsed_type = grex_value_parser_try_parse(
+    parsed_value = grex_value_parser_try_parse(
         parser, g_value_get_string(actual_value), pspec->value_type, &error);
-    if (parsed_type == NULL) {
+    if (parsed_value == NULL) {
       g_warning("Failed to parse value for '%s': %s", name, error->message);
       return;
     }
 
-    g_object_set_property(target, name,
-                          grex_value_holder_get_value(parsed_type));
+    actual_value = grex_value_holder_get_value(parsed_value);
   } else {
     g_warning("Cannot assign to '%s'", name);
+  }
+
+  g_auto(GValue) current_value = G_VALUE_INIT;
+  g_value_init(&current_value, pspec->value_type);
+  g_object_get_property(target, name, &current_value);
+
+  // Only actually set it if changed.
+  if (g_param_values_cmp(pspec, &current_value, actual_value) != 0) {
+    g_object_set_property(target, name, actual_value);
   }
 
   incremental_table_diff_add_to_current_inflation(&host->property_diff,
