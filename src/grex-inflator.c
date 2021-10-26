@@ -191,6 +191,23 @@ parse_structural_directive_name(const char *name) {
 }
 
 static void
+on_notify_property_changed(GObject *object, GParamSpec *pspec,
+                           gpointer user_data) {
+  GrexValueHolder *value_holder = user_data;
+  g_return_if_fail(grex_value_holder_can_push(value_holder));
+
+  g_auto(GValue) current_value = G_VALUE_INIT;
+  g_value_init(&current_value, pspec->value_type);
+  g_object_get_property(object, pspec->name, &current_value);
+  grex_value_holder_push(value_holder, &current_value);
+}
+
+static void
+destroy_notify_data(gpointer value_holder, GClosure *closure) {
+  grex_value_holder_unref(value_holder);
+}
+
+static void
 grex_inflator_apply_binding(GrexInflator *inflator, GrexFragmentHost *host,
                             const char *name, GrexBinding *binding,
                             gboolean track_dependencies) {
@@ -206,6 +223,16 @@ grex_inflator_apply_binding(GrexInflator *inflator, GrexFragmentHost *host,
   }
 
   grex_fragment_host_add_property(host, name, result);
+
+  if (grex_value_holder_can_push(result)) {
+    g_autofree char *notify = g_strdup_printf("notify::%s", name);
+    // NOTE: No autoptr, because GClosure is floating by default.
+    GClosure *closure =
+        g_cclosure_new(G_CALLBACK(on_notify_property_changed),
+                       grex_value_holder_ref(result), destroy_notify_data);
+
+    grex_fragment_host_add_signal(host, notify, closure, FALSE);
+  }
 }
 
 static void

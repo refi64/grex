@@ -27,6 +27,25 @@ def _create_box_fragment():
     return Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation())
 
 
+# TODO: dedup these across the tests.
+class _TestObject(GObject.Object):
+    def __init__(self) -> None:
+        super(_TestObject, self).__init__()
+        self._value = 'abc'
+
+    @GObject.Property(type=str)
+    def value(self):  # type: ignore
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        self._value = value
+
+    @GObject.Property(type=GObject.Object)
+    def inner(self):
+        return self._inner
+
+
 class _HelloLabelPropertyDirective(Grex.PropertyDirective):
     def do_update(self, host):
         host.get_target().set_text('hello')
@@ -185,6 +204,24 @@ def test_inflate_existing_target():
     inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
     assert target.get_text() == 'world'
+
+
+def test_inflate_property_binding():
+    scope = _TestObject()
+    inflator = Grex.Inflator.new_with_scope(scope)
+
+    builder = Grex.BindingBuilder()
+    builder.add_expression(
+        Grex.property_expression_new(Grex.SourceLocation(), None, 'value'),
+        True)
+    binding = builder.build(Grex.SourceLocation())
+
+    fragment = _create_label_fragment()
+    fragment.insert_binding('label', binding)
+
+    target = inflator.inflate_new_target(fragment, Grex.InflationFlags.NONE)
+    target.set_text('def')
+    assert scope._value == 'def'
 
 
 def test_inflate_with_children():
