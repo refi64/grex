@@ -88,8 +88,8 @@ hello_window_init(HelloWindow *window) {
   grex_inflator_take_directives(
       grex_reactive_inflator_get_base_inflator(window->inflator),
       GREX_INFLATOR_DIRECTIVE_NONE, grex_if_directive_factory_new(),
-      grex_child_property_container_adapter_directive_factory_new(),
-      grex_gtk_box_container_adapter_directive_factory_new(), NULL);
+      grex_child_property_container_directive_factory_new(),
+      grex_gtk_box_container_directive_factory_new(), NULL);
 
   grex_reactive_inflator_inflate(window->inflator);
 

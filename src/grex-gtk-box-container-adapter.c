@@ -83,93 +83,88 @@ grex_gtk_box_container_adapter_new() {
   return g_object_new(GREX_TYPE_GTK_BOX_CONTAINER_ADAPTER, NULL);
 }
 
-struct _GrexGtkBoxContainerAdapterDirective {
+struct _GrexGtkBoxContainerDirective {
   GrexPropertyDirective parent_instance;
 };
 
-G_DEFINE_TYPE(GrexGtkBoxContainerAdapterDirective,
-              grex_gtk_box_container_adapter_directive,
+G_DEFINE_TYPE(GrexGtkBoxContainerDirective, grex_gtk_box_container_directive,
               GREX_TYPE_PROPERTY_DIRECTIVE)
 
 static void
-grex_gtk_box_container_adapter_directive_attach(
-    GrexPropertyDirective *directive, GrexFragmentHost *host) {
+grex_gtk_box_container_directive_attach(GrexPropertyDirective *directive,
+                                        GrexFragmentHost *host) {
   g_autoptr(GrexContainerAdapter) adapter =
       grex_gtk_box_container_adapter_new();
   grex_fragment_host_set_container_adapter(host, adapter);
 }
 
 static void
-grex_gtk_box_container_adapter_directive_class_init(
-    GrexGtkBoxContainerAdapterDirectiveClass *klass) {
+grex_gtk_box_container_directive_class_init(
+    GrexGtkBoxContainerDirectiveClass *klass) {
   GrexPropertyDirectiveClass *property_directive_class =
       GREX_PROPERTY_DIRECTIVE_CLASS(klass);
-  property_directive_class->attach =
-      grex_gtk_box_container_adapter_directive_attach;
+  property_directive_class->attach = grex_gtk_box_container_directive_attach;
   // TODO: figure out how we want detaching to work
 }
 
 static void
-grex_gtk_box_container_adapter_directive_init(
-    GrexGtkBoxContainerAdapterDirective *directive) {}
+grex_gtk_box_container_directive_init(GrexGtkBoxContainerDirective *directive) {
+}
 
-struct _GrexGtkBoxContainerAdapterDirectiveFactory {
+struct _GrexGtkBoxContainerDirectiveFactory {
   GrexPropertyDirectiveFactory parent_instance;
 };
 
-G_DEFINE_TYPE(GrexGtkBoxContainerAdapterDirectiveFactory,
-              grex_gtk_box_container_adapter_directive_factory,
+G_DEFINE_TYPE(GrexGtkBoxContainerDirectiveFactory,
+              grex_gtk_box_container_directive_factory,
               GREX_TYPE_PROPERTY_DIRECTIVE_FACTORY)
 
 static const char *
-grex_gtk_box_container_adapter_directive_factory_get_name(
+grex_gtk_box_container_directive_factory_get_name(
     GrexDirectiveFactory *factory) {
-  return "grex.gtk-box-container-adapter";
+  return "grex.gtk-box-container";
 }
 
 static GrexDirectivePropertyFormat
-grex_gtk_box_container_adapter_directive_factory_get_property_format(
+grex_gtk_box_container_directive_factory_get_property_format(
     GrexDirectiveFactory *factory) {
   return GREX_DIRECTIVE_PROPERTY_FORMAT_NONE;
 }
 
 static GrexPropertyDirective *
-grex_gtk_box_container_adapter_directive_factory_create(
+grex_gtk_box_container_directive_factory_create(
     GrexPropertyDirectiveFactory *factory) {
-  return g_object_new(GREX_TYPE_GTK_BOX_CONTAINER_ADAPTER_DIRECTIVE, NULL);
+  return g_object_new(GREX_TYPE_GTK_BOX_CONTAINER_DIRECTIVE, NULL);
 }
 
 static gboolean
-grex_gtk_box_container_adapter_directive_factory_should_auto_attach(
+grex_gtk_box_container_directive_factory_should_auto_attach(
     GrexPropertyDirectiveFactory *factory, GrexFragmentHost *host,
     GrexFragment *fragment) {
   return g_type_is_a(grex_fragment_get_target_type(fragment), GTK_TYPE_BOX);
 }
 
 static void
-grex_gtk_box_container_adapter_directive_factory_class_init(
-    GrexGtkBoxContainerAdapterDirectiveFactoryClass *klass) {
+grex_gtk_box_container_directive_factory_class_init(
+    GrexGtkBoxContainerDirectiveFactoryClass *klass) {
   GrexDirectiveFactoryClass *factory_class =
       GREX_DIRECTIVE_FACTORY_CLASS(klass);
-  factory_class->get_name =
-      grex_gtk_box_container_adapter_directive_factory_get_name;
+  factory_class->get_name = grex_gtk_box_container_directive_factory_get_name;
   factory_class->get_property_format =
-      grex_gtk_box_container_adapter_directive_factory_get_property_format;
+      grex_gtk_box_container_directive_factory_get_property_format;
 
   GrexPropertyDirectiveFactoryClass *prop_factory_class =
       GREX_PROPERTY_DIRECTIVE_FACTORY_CLASS(klass);
-  prop_factory_class->create =
-      grex_gtk_box_container_adapter_directive_factory_create;
+  prop_factory_class->create = grex_gtk_box_container_directive_factory_create;
   prop_factory_class->should_auto_attach =
-      grex_gtk_box_container_adapter_directive_factory_should_auto_attach;
+      grex_gtk_box_container_directive_factory_should_auto_attach;
 }
 
 static void
-grex_gtk_box_container_adapter_directive_factory_init(
-    GrexGtkBoxContainerAdapterDirectiveFactory *factory) {}
+grex_gtk_box_container_directive_factory_init(
+    GrexGtkBoxContainerDirectiveFactory *factory) {}
 
-GrexGtkBoxContainerAdapterDirectiveFactory *
-grex_gtk_box_container_adapter_directive_factory_new() {
-  return g_object_new(GREX_TYPE_GTK_BOX_CONTAINER_ADAPTER_DIRECTIVE_FACTORY,
-                      NULL);
+GrexGtkBoxContainerDirectiveFactory *
+grex_gtk_box_container_directive_factory_new() {
+  return g_object_new(GREX_TYPE_GTK_BOX_CONTAINER_DIRECTIVE_FACTORY, NULL);
 }

@@ -1,7 +1,7 @@
 <!-- Any copyright is dedicated to the Public Domain.
    - https://creativecommons.org/publicdomain/zero/1.0/ -->
 
-<HelloWindow title="Hello, Grex!" default-width="[620]" default-height="[480]" _grex.child-property-container-adapter="">
+<HelloWindow title="Hello, Grex!" default-width="[620]" default-height="[480]" _grex.child-property-container="">
   <GtkBox orientation="horizontal" hexpand="[true]" valign="center" margin-start="[16]" margin-end="[16]">
     <GtkBox orientation="horizontal" hexpand="[true]" halign="start">
       <GtkLabel label="Show the timer" halign="start" margin-end="[16]" />

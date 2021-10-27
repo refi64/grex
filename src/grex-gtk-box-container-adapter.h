@@ -17,20 +17,20 @@ G_DECLARE_FINAL_TYPE(GrexGtkBoxContainerAdapter, grex_gtk_box_container_adapter,
 
 GrexContainerAdapter *grex_gtk_box_container_adapter_new();
 
-#define GREX_TYPE_GTK_BOX_CONTAINER_ADAPTER_DIRECTIVE \
-  grex_gtk_box_container_adapter_directive_get_type()
-G_DECLARE_FINAL_TYPE(GrexGtkBoxContainerAdapterDirective,
-                     grex_gtk_box_container_adapter_directive, GREX,
-                     GTK_BOX_CONTAINER_ADAPTER_DIRECTIVE, GrexPropertyDirective)
+#define GREX_TYPE_GTK_BOX_CONTAINER_DIRECTIVE \
+  grex_gtk_box_container_directive_get_type()
+G_DECLARE_FINAL_TYPE(GrexGtkBoxContainerDirective,
+                     grex_gtk_box_container_directive, GREX,
+                     GTK_BOX_CONTAINER_DIRECTIVE, GrexPropertyDirective)
 
-#define GREX_TYPE_GTK_BOX_CONTAINER_ADAPTER_DIRECTIVE_FACTORY \
-  grex_gtk_box_container_adapter_directive_factory_get_type()
-G_DECLARE_FINAL_TYPE(GrexGtkBoxContainerAdapterDirectiveFactory,
-                     grex_gtk_box_container_adapter_directive_factory, GREX,
-                     GTK_BOX_CONTAINER_ADAPTER_DIRECTIVE_FACTORY,
+#define GREX_TYPE_GTK_BOX_CONTAINER_DIRECTIVE_FACTORY \
+  grex_gtk_box_container_directive_factory_get_type()
+G_DECLARE_FINAL_TYPE(GrexGtkBoxContainerDirectiveFactory,
+                     grex_gtk_box_container_directive_factory, GREX,
+                     GTK_BOX_CONTAINER_DIRECTIVE_FACTORY,
                      GrexPropertyDirectiveFactory)
 
-GrexGtkBoxContainerAdapterDirectiveFactory *
-grex_gtk_box_container_adapter_directive_factory_new();
+GrexGtkBoxContainerDirectiveFactory *
+grex_gtk_box_container_directive_factory_new();
 
 G_END_DECLS

@@ -73,86 +73,85 @@ grex_child_property_container_adapter_new() {
   return g_object_new(GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER, NULL);
 }
 
-struct _GrexChildPropertyContainerAdapterDirective {
+struct _GrexChildPropertyContainerDirective {
   GrexPropertyDirective parent_instance;
 };
 
-G_DEFINE_TYPE(GrexChildPropertyContainerAdapterDirective,
-              grex_child_property_container_adapter_directive,
+G_DEFINE_TYPE(GrexChildPropertyContainerDirective,
+              grex_child_property_container_directive,
               GREX_TYPE_PROPERTY_DIRECTIVE)
 
 static void
-grex_child_property_container_adapter_directive_attach(
-    GrexPropertyDirective *directive, GrexFragmentHost *host) {
+grex_child_property_container_directive_attach(GrexPropertyDirective *directive,
+                                               GrexFragmentHost *host) {
   g_autoptr(GrexContainerAdapter) adapter =
       grex_child_property_container_adapter_new();
   grex_fragment_host_set_container_adapter(host, adapter);
 }
 
 static void
-grex_child_property_container_adapter_directive_class_init(
-    GrexChildPropertyContainerAdapterDirectiveClass *klass) {
+grex_child_property_container_directive_class_init(
+    GrexChildPropertyContainerDirectiveClass *klass) {
   GrexPropertyDirectiveClass *property_directive_class =
       GREX_PROPERTY_DIRECTIVE_CLASS(klass);
   property_directive_class->attach =
-      grex_child_property_container_adapter_directive_attach;
+      grex_child_property_container_directive_attach;
   // TODO: figure out how we want detaching to work
 }
 
 static void
-grex_child_property_container_adapter_directive_init(
-    GrexChildPropertyContainerAdapterDirective *directive) {}
+grex_child_property_container_directive_init(
+    GrexChildPropertyContainerDirective *directive) {}
 
-struct _GrexChildPropertyContainerAdapterDirectiveFactory {
+struct _GrexChildPropertyContainerDirectiveFactory {
   GrexPropertyDirectiveFactory parent_instance;
 };
 
-G_DEFINE_TYPE(GrexChildPropertyContainerAdapterDirectiveFactory,
-              grex_child_property_container_adapter_directive_factory,
+G_DEFINE_TYPE(GrexChildPropertyContainerDirectiveFactory,
+              grex_child_property_container_directive_factory,
               GREX_TYPE_PROPERTY_DIRECTIVE_FACTORY)
 
 static const char *
-grex_child_property_container_adapter_directive_factory_get_name(
+grex_child_property_container_directive_factory_get_name(
     GrexDirectiveFactory *factory) {
-  return "grex.child-property-container-adapter";
+  return "grex.child-property-container";
 }
 
 static GrexDirectivePropertyFormat
-grex_child_property_container_adapter_directive_factory_get_property_format(
+grex_child_property_container_directive_factory_get_property_format(
     GrexDirectiveFactory *factory) {
   return GREX_DIRECTIVE_PROPERTY_FORMAT_NONE;
 }
 
 static GrexPropertyDirective *
-grex_child_property_container_adapter_directive_factory_create(
+grex_child_property_container_directive_factory_create(
     GrexPropertyDirectiveFactory *factory) {
-  return g_object_new(GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE,
-                      NULL);
+  return g_object_new(GREX_TYPE_CHILD_PROPERTY_CONTAINER_DIRECTIVE, NULL);
 }
 
 static void
-grex_child_property_container_adapter_directive_factory_class_init(
-    GrexChildPropertyContainerAdapterDirectiveFactoryClass *klass) {
+grex_child_property_container_directive_factory_class_init(
+    GrexChildPropertyContainerDirectiveFactoryClass *klass) {
   GrexDirectiveFactoryClass *factory_class =
       GREX_DIRECTIVE_FACTORY_CLASS(klass);
 
   factory_class->get_name =
-      grex_child_property_container_adapter_directive_factory_get_name;
+      grex_child_property_container_directive_factory_get_name;
   factory_class->get_property_format =
-      grex_child_property_container_adapter_directive_factory_get_property_format;
+      grex_child_property_container_directive_factory_get_property_format;
 
   GrexPropertyDirectiveFactoryClass *prop_factory_class =
       GREX_PROPERTY_DIRECTIVE_FACTORY_CLASS(klass);
   prop_factory_class->create =
-      grex_child_property_container_adapter_directive_factory_create;
+      grex_child_property_container_directive_factory_create;
 }
 
 static void
-grex_child_property_container_adapter_directive_factory_init(
-    GrexChildPropertyContainerAdapterDirectiveFactory *factory) {}
+grex_child_property_container_directive_factory_init(
+    GrexChildPropertyContainerDirectiveFactory *factory) {}
 
-GrexChildPropertyContainerAdapterDirectiveFactory *
-grex_child_property_container_adapter_directive_factory_new() {
-  return g_object_new(
-      GREX_TYPE_CHILD_PROPERTY_CONTAINER_ADAPTER_DIRECTIVE_FACTORY, NULL);
+GrexChildPropertyContainerDirectiveFactory *
+grex_child_property_container_directive_factory_new() {
+  return g_object_new(GREX_TYPE_CHILD_PROPERTY_CONTAINER_DIRECTIVE_FACTORY,
+                      NULL);
 }
