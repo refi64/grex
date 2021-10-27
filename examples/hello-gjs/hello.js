@@ -81,8 +81,8 @@ const HelloWindow = GObject.registerClass({
       Grex.InflatorDirectiveFlags.FLAGS_NONE,
       [
         new Grex.IfDirectiveFactory(),
-        new Grex.ChildPropertyContainerAdapterDirectiveFactory(),
-        new Grex.GtkBoxContainerAdapterDirectiveFactory(),
+        new Grex.GtkChildPropertyContainerDirectiveFactory(),
+        new Grex.GtkBoxContainerDirectiveFactory(),
       ])
     this.inflator.inflate()
 

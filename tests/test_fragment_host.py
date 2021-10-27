@@ -116,7 +116,7 @@ def test_fragment_host_signal():
 def test_fragment_inflation_children():
     box = Gtk.Box()
     host = Grex.FragmentHost.new(box)
-    host.set_container_adapter(Grex.WidgetContainerAdapter())
+    host.set_container_adapter(Grex.GtkWidgetContainerAdapter())
 
     x = Gtk.Label(label='x')
     y = Gtk.Label(label='y')

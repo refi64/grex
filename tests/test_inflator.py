@@ -233,7 +233,7 @@ def test_inflate_with_children():
 
     target = Gtk.Box()
     Grex.FragmentHost.new(target).set_container_adapter(
-        Grex.WidgetContainerAdapter.new())
+        Grex.GtkWidgetContainerAdapter.new())
     inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
 
@@ -313,7 +313,7 @@ def test_inflate_with_structural_directives():
 
     target = Gtk.Box()
     Grex.FragmentHost.new(target).set_container_adapter(
-        Grex.WidgetContainerAdapter.new())
+        Grex.GtkWidgetContainerAdapter.new())
 
     inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)

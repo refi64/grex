@@ -15,7 +15,6 @@ grex_config_h = configure_file(
 
 grex_sources = [
   'grex-binding.c',
-  'grex-child-property-container-adapter.c',
   'grex-constant-value-expression.c',
   'grex-container-adapter.c',
   'grex-directive.c',
@@ -23,7 +22,9 @@ grex_sources = [
   'grex-expression-context.c',
   'grex-fragment.c',
   'grex-fragment-host.c',
+  'grex-gtk-child-property-container-adapter.c',
   'grex-gtk-box-container-adapter.c',
+  'grex-gtk-widget-container-adapter.c',
   'grex-if-directive.c',
   'grex-inflator.c',
   'grex-property-directive.c',
@@ -34,13 +35,11 @@ grex_sources = [
   'grex-template.c',
   'grex-value-holder.c',
   'grex-value-parser.c',
-  'grex-widget-container-adapter.c',
 ]
 
 grex_headers = [
   grex_config_h,
   'grex-binding.h',
-  'grex-child-property-container-adapter.h',
   'grex-container-adapter.h',
   'grex-directive.h',
   'grex-expression.h',
@@ -48,6 +47,8 @@ grex_headers = [
   'grex-fragment.h',
   'grex-fragment-host.h',
   'grex-gtk-box-container-adapter.h',
+  'grex-gtk-child-property-container-adapter.h',
+  'grex-gtk-widget-container-adapter.h',
   'grex-if-directive.h',
   'grex-inflator.h',
   'grex-reactive-inflator.h',
@@ -57,7 +58,6 @@ grex_headers = [
   'grex-template.h',
   'grex-value-holder.h',
   'grex-value-parser.h',
-  'grex-widget-container-adapter.h',
 ]
 
 grex_args = ['-D_GREX_INTERNAL']
