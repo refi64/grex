@@ -111,7 +111,7 @@ G_DEFINE_TYPE(GrexGtkWidgetContainerDirectiveFactory,
 static const char *
 grex_gtk_widget_container_directive_factory_get_name(
     GrexDirectiveFactory *factory) {
-  return "grex.gtk-widget-container";
+  return "Gtk.widget-container";
 }
 
 static GrexDirectivePropertyFormat

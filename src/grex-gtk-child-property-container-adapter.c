@@ -114,7 +114,7 @@ G_DEFINE_TYPE(GrexGtkChildPropertyContainerDirectiveFactory,
 static const char *
 grex_gtk_child_property_container_directive_factory_get_name(
     GrexDirectiveFactory *factory) {
-  return "grex.gtk-child-property-container";
+  return "Gtk.child-property-container";
 }
 
 static GrexDirectivePropertyFormat

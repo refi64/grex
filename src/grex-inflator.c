@@ -172,19 +172,15 @@ grex_inflator_add_directivesv(GrexInflator *inflator,
   }
 }
 
-static inline const char *
-parse_property_directive_name(const char *name) {
-  if (name[0] == '_' && name[1] != '_') {
-    return name + 1;
-  } else {
-    return NULL;
-  }
+static inline gboolean
+is_property_directive(const char *name) {
+  return g_ascii_isupper(name[0]);
 }
 
 static inline const char *
 parse_structural_directive_name(const char *name) {
-  if (g_str_has_prefix(name, "__")) {
-    return name + 2;
+  if (name[0] == '_' && g_ascii_isupper(name[1])) {
+    return name + 1;
   } else {
     return NULL;
   }
@@ -243,7 +239,7 @@ grex_inflator_apply_properties(GrexInflator *inflator, GrexFragmentHost *host,
 
   for (GList *target = targets; target != NULL; target = target->next) {
     const char *name = target->data;
-    if (parse_property_directive_name(name) != NULL ||
+    if (is_property_directive(name) ||
         parse_structural_directive_name(name) != NULL) {
       // Skip it, it's a directive that is handled separately.
       continue;
@@ -344,15 +340,14 @@ grex_inflator_apply_explicit_directives(GrexInflator *inflator,
   g_autoptr(GList) targets = grex_fragment_get_binding_targets(fragment);
   for (GList *target = targets; target != NULL; target = target->next) {
     const char *name = target->data;
-    const char *unprefixed_name = parse_property_directive_name(name);
-    if (unprefixed_name == NULL) {
+    if (!is_property_directive(name)) {
       continue;
     }
 
     GrexDirectiveFactory *factory = NULL;
     const char *property = NULL;
-    if (!grex_inflator_get_directive_and_property(inflator, unprefixed_name,
-                                                  &factory, &property)) {
+    if (!grex_inflator_get_directive_and_property(inflator, name, &factory,
+                                                  &property)) {
       continue;
     }
 

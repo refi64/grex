@@ -122,7 +122,7 @@ G_DEFINE_TYPE(GrexGtkBoxContainerDirectiveFactory,
 static const char *
 grex_gtk_box_container_directive_factory_get_name(
     GrexDirectiveFactory *factory) {
-  return "grex.gtk-box-container";
+  return "Gtk.box-container";
 }
 
 static GrexDirectivePropertyFormat

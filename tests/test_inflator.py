@@ -53,7 +53,7 @@ class _HelloLabelPropertyDirective(Grex.PropertyDirective):
 
 class _HelloLabelPropertyDirectiveFactory(Grex.PropertyDirectiveFactory):
     def do_get_name(self):
-        return 'test.hello-label'
+        return 'Test.hello-label'
 
     def do_get_property_format(self):
         return Grex.DirectivePropertyFormat.NONE
@@ -82,7 +82,7 @@ class _PercentLabelPropertyDirective(Grex.PropertyDirective):
 
 class _PercentLabelPropertyDirectiveFactory(Grex.PropertyDirectiveFactory):
     def do_get_name(self):
-        return 'test.percent-label'
+        return 'Test.percent-label'
 
     def do_get_property_format(self):
         return Grex.DirectivePropertyFormat.IMPLICIT_VALUE
@@ -122,7 +122,7 @@ class _ExplicitPercentLabelPropertyDirective(Grex.PropertyDirective):
 class _ExplicitPercentLabelPropertyDirectiveFactory(
         Grex.PropertyDirectiveFactory):
     def do_get_name(self):
-        return 'test.explicit-percent-label'
+        return 'Test.explicit-percent-label'
 
     def do_get_property_format(self):
         return Grex.DirectivePropertyFormat.EXPLICIT
@@ -138,7 +138,7 @@ class _AutoLabelPropertyDirective(Grex.PropertyDirective):
 
 class _AutoLabelPropertyDirectiveFactory(Grex.PropertyDirectiveFactory):
     def do_get_name(self):
-        return 'test.auto-label'
+        return 'Test.auto-label'
 
     def do_get_property_format(self):
         return Grex.DirectivePropertyFormat.NONE
@@ -171,7 +171,7 @@ class _UnlessStructuralDirective(Grex.StructuralDirective):
 
 class _UnlessStructuralDirectiveFactory(Grex.StructuralDirectiveFactory):
     def do_get_name(self):
-        return 'test.unless'
+        return 'Test.unless'
 
     def do_get_property_format(self):
         return Grex.DirectivePropertyFormat.IMPLICIT_VALUE
@@ -246,7 +246,7 @@ def test_inflate_with_property_directives():
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
                             [_HelloLabelPropertyDirectiveFactory()])
     fragment = _create_label_fragment()
-    fragment.insert_binding('_test.hello-label', _build_constant_binding(''))
+    fragment.insert_binding('Test.hello-label', _build_constant_binding(''))
 
     target = Gtk.Label()
     inflator.inflate_existing_target(target, fragment,
@@ -260,7 +260,7 @@ def test_inflate_with_property_directive_implicit_value():
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
                             [_PercentLabelPropertyDirectiveFactory()])
     fragment = _create_label_fragment()
-    fragment.insert_binding('_test.percent-label',
+    fragment.insert_binding('Test.percent-label',
                             _build_constant_binding('10'))
 
     target = Gtk.Label()
@@ -275,9 +275,9 @@ def test_inflate_with_property_directive_explicit():
     inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
                             [_ExplicitPercentLabelPropertyDirectiveFactory()])
     fragment = _create_label_fragment()
-    fragment.insert_binding('_test.explicit-percent-label.percent',
+    fragment.insert_binding('Test.explicit-percent-label.percent',
                             _build_constant_binding('20'))
-    fragment.insert_binding('_test.explicit-percent-label.label',
+    fragment.insert_binding('Test.explicit-percent-label.label',
                             _build_constant_binding('completed'))
 
     target = Gtk.Label()
@@ -308,7 +308,7 @@ def test_inflate_with_structural_directives():
     fragment = _create_box_fragment()
     child_fragment = _create_label_fragment()
     child_fragment.insert_binding('label', _build_constant_binding('hello'))
-    child_fragment.insert_binding('__test.unless', _build_bool_binding(True))
+    child_fragment.insert_binding('_Test.unless', _build_bool_binding(True))
     fragment.add_child(child_fragment)
 
     target = Gtk.Box()
@@ -320,13 +320,13 @@ def test_inflate_with_structural_directives():
 
     assert target.get_first_child() is None
 
-    child_fragment.insert_binding('__test.unless', _build_bool_binding(False))
+    child_fragment.insert_binding('_Test.unless', _build_bool_binding(False))
     inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
     assert isinstance(target.get_first_child(), Gtk.Label)
     assert target.get_first_child().get_text() == 'hello'
 
-    child_fragment.insert_binding('__test.unless', _build_bool_binding(True))
+    child_fragment.insert_binding('_Test.unless', _build_bool_binding(True))
     inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
     assert target.get_first_child() is None

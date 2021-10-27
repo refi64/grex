@@ -64,7 +64,7 @@ G_DEFINE_FINAL_TYPE(GrexIfDirectiveFactory, grex_if_directive_factory,
 
 static const char *
 grex_if_directive_factory_get_name(GrexDirectiveFactory *factory) {
-  return "grex.if";
+  return "Grex.if";
 }
 
 static GrexDirectivePropertyFormat

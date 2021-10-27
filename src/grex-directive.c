@@ -15,10 +15,26 @@ static void
 grex_directive_init(GrexDirective *directive) {}
 
 static void
-grex_directive_factory_class_init(GrexDirectiveFactoryClass *klass) {}
+grex_directive_factory_constructed(GObject *object) {
+  GrexDirectiveFactory *factory = GREX_DIRECTIVE_FACTORY(object);
+  const char *name = grex_directive_factory_get_name(factory);
+  g_return_if_fail(name != NULL);
+
+  if (G_UNLIKELY(!g_ascii_isupper(*name))) {
+    g_warning("First character of directive name must be capitalized: %s",
+              name);
+  }
+}
 
 static void
-grex_directive_factory_init() {}
+grex_directive_factory_class_init(GrexDirectiveFactoryClass *klass) {
+  GObjectClass *object_class = G_OBJECT_CLASS(klass);
+
+  object_class->constructed = grex_directive_factory_constructed;
+}
+
+static void
+grex_directive_factory_init(GrexDirectiveFactory *factory) {}
 
 /**
  * grex_directive_factory_get_name: (virtual get_name)
