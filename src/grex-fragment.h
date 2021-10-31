@@ -17,8 +17,8 @@ G_BEGIN_DECLS
 #define GREX_TYPE_FRAGMENT grex_fragment_get_type()
 G_DECLARE_FINAL_TYPE(GrexFragment, grex_fragment, GREX, FRAGMENT, GObject)
 
-GrexFragment *grex_fragment_new(GType target_type,
-                                GrexSourceLocation *location);
+GrexFragment *grex_fragment_new(GType target_type, GrexSourceLocation *location,
+                                gboolean is_root);
 
 GrexFragment *grex_fragment_parse_xml(const char *xml, gssize len,
                                       const char *filename,
@@ -26,6 +26,7 @@ GrexFragment *grex_fragment_parse_xml(const char *xml, gssize len,
 
 GType grex_fragment_get_target_type(GrexFragment *fragment);
 GrexSourceLocation *grex_fragment_get_location(GrexFragment *fragment);
+gboolean grex_fragment_is_root(GrexFragment *fragment);
 
 void grex_fragment_insert_binding(GrexFragment *fragment, const char *target,
                                   GrexBinding *binding);

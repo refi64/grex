@@ -8,15 +8,17 @@ import pytest
 
 def test_empty_fragment():
     location = Grex.SourceLocation()
-    fragment = Grex.Fragment.new(Gtk.Box.__gtype__, location)
+    fragment = Grex.Fragment.new(Gtk.Box.__gtype__, location, True)
 
     assert fragment.get_target_type() == Gtk.Box.__gtype__
+    assert fragment.is_root()
     assert fragment.get_children() == []
     assert fragment.get_location() == location
 
 
 def test_fragment_bindings():
-    fragment = Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation())
+    fragment = Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation(),
+                                 False)
 
     assert fragment.get_binding_targets() == []
     assert fragment.get_binding('not found') is None
@@ -41,7 +43,7 @@ def test_fragment_children():
     location = Grex.SourceLocation()
 
     parent, child1, child2 = [
-        Grex.Fragment.new(Gtk.Box.__gtype__, location) for _ in range(3)
+        Grex.Fragment.new(Gtk.Box.__gtype__, location, False) for _ in range(3)
     ]
 
     parent.add_child(child1)
@@ -81,17 +83,23 @@ def test_fragment_parsing_children():
 
     root = Grex.Fragment.parse_xml(XML, -1)
     assert root.get_target_type() == Gtk.Box.__gtype__
+    assert root.is_root()
 
     [grid, flowbox] = root.get_children()
     assert grid.get_target_type() == Gtk.Grid.__gtype__
+    assert not grid.is_root()
     assert flowbox.get_target_type() == Gtk.FlowBox.__gtype__
+    assert not flowbox.is_root()
 
     [button, label] = grid.get_children()
     assert button.get_target_type() == Gtk.Button.__gtype__
+    assert not button.is_root()
     assert label.get_target_type() == Gtk.Label.__gtype__
+    assert not label.is_root()
 
     [switch] = flowbox.get_children()
     assert switch.get_target_type() == Gtk.Switch.__gtype__
+    assert not switch.is_root()
 
 
 def test_fragment_parsing_invalid_type():

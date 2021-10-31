@@ -18,13 +18,16 @@ struct _GrexFragment {
   GType target_type;
   GrexSourceLocation *location;
 
+  gboolean is_root;
+
   GHashTable *bindings;
   GPtrArray *children;
 };
 
 enum {
-  PROP_target_type = 1,
+  PROP_TARGET_TYPE = 1,
   PROP_LOCATION,
+  PROP_IS_ROOT,
   N_PROPS,
 };
 
@@ -49,11 +52,11 @@ grex_fragment_class_init(GrexFragmentClass *klass) {
 
   gpropz_class_init_property_functions(object_class);
 
-  properties[PROP_target_type] = g_param_spec_gtype(
+  properties[PROP_TARGET_TYPE] = g_param_spec_gtype(
       "target-type", "Target type", "The type this fragment represents.",
       G_TYPE_NONE, G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
   gpropz_install_property(object_class, GrexFragment, target_type,
-                          PROP_target_type, properties[PROP_target_type], NULL);
+                          PROP_TARGET_TYPE, properties[PROP_TARGET_TYPE], NULL);
 
   properties[PROP_LOCATION] = g_param_spec_object(
       "location", "Source location",
@@ -61,6 +64,13 @@ grex_fragment_class_init(GrexFragmentClass *klass) {
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
   gpropz_install_property(object_class, GrexFragment, location, PROP_LOCATION,
                           properties[PROP_LOCATION], NULL);
+
+  properties[PROP_IS_ROOT] = g_param_spec_boolean(
+      "is-root", "Is the root",
+      "Whether or not this fragment is the root of a tree.", FALSE,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE);
+  gpropz_install_property(object_class, GrexFragment, is_root, PROP_IS_ROOT,
+                          properties[PROP_IS_ROOT], NULL);
 }
 
 static void
@@ -81,9 +91,10 @@ grex_fragment_init(GrexFragment *fragment) {
  * Returns: (transfer full): A new fragment.
  */
 GrexFragment *
-grex_fragment_new(GType target_type, GrexSourceLocation *location) {
+grex_fragment_new(GType target_type, GrexSourceLocation *location,
+                  gboolean is_root) {
   return g_object_new(GREX_TYPE_FRAGMENT, "target-type", target_type,
-                      "location", location, NULL);
+                      "location", location, "is-root", is_root, NULL);
 }
 
 typedef struct {
@@ -119,8 +130,10 @@ grex_fragment_parser_start_fragment(GMarkupParseContext *context,
     return;
   }
 
-  GrexFragment *fragment = grex_fragment_new(type, g_steal_pointer(&location));
-  if (data->fragment_stack->len > 0) {
+  gboolean is_root = data->fragment_stack->len == 0;
+  GrexFragment *fragment =
+      grex_fragment_new(type, g_steal_pointer(&location), is_root);
+  if (!is_root) {
     GrexFragment *parent =
         g_ptr_array_index(data->fragment_stack, data->fragment_stack->len - 1);
     grex_fragment_add_child(parent, fragment);
@@ -214,7 +227,7 @@ grex_fragment_parse_xml(const char *xml, gssize len, const char *filename,
  * Returns: The target type.
  */
 GPROPZ_DEFINE_RO(GType, GrexFragment, grex_fragment, target_type,
-                 properties[PROP_target_type])
+                 properties[PROP_TARGET_TYPE])
 
 /**
  * grex_fragment_get_location:
@@ -225,6 +238,18 @@ GPROPZ_DEFINE_RO(GType, GrexFragment, grex_fragment, target_type,
  */
 GPROPZ_DEFINE_RO(GrexSourceLocation *, GrexFragment, grex_fragment, location,
                  properties[PROP_LOCATION])
+
+/**
+ * grex_fragment_is_root:
+ *
+ * Returns whether or not this fragment is the root of its tree.
+ *
+ * Returns: %TRUE if the fragment is a root.
+ */
+gboolean
+grex_fragment_is_root(GrexFragment *fragment) {
+  return fragment->is_root;
+}
 
 /**
  * grex_fragment_insert_binding:

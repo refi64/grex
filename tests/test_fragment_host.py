@@ -48,10 +48,11 @@ def test_fragment_host_matching_type():
     host = Grex.FragmentHost.new(label)
 
     label_fragment = Grex.Fragment.new(Gtk.Label.__gtype__,
-                                       Grex.SourceLocation())
+                                       Grex.SourceLocation(), False)
     assert host.matches_fragment_type(label_fragment)
 
-    box_fragment = Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation())
+    box_fragment = Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation(),
+                                     False)
     assert not host.matches_fragment_type(box_fragment)
 
 

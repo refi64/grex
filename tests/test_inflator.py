@@ -20,11 +20,11 @@ def _build_bool_binding(value):
 
 
 def _create_label_fragment():
-    return Grex.Fragment.new(Gtk.Label.__gtype__, Grex.SourceLocation())
+    return Grex.Fragment.new(Gtk.Label.__gtype__, Grex.SourceLocation(), False)
 
 
 def _create_box_fragment():
-    return Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation())
+    return Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation(), False)
 
 
 # TODO: dedup these across the tests.
