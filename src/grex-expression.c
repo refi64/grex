@@ -7,6 +7,8 @@
 #include "gpropz.h"
 #include "grex-enums.h"
 #include "grex-expression-private.h"
+#include "grex-parser-impl.h"
+#include "grex-parser-private.h"
 
 typedef struct {
   GrexSourceLocation *location;
@@ -77,22 +79,17 @@ grex_expression_init(GrexExpression *expression) {}
 GrexExpression *
 grex_expression_parse(const char *string, gssize len,
                       GrexSourceLocation *location, GError **error) {
-  // TODO: actual parsing
-  if (g_ascii_isdigit(*string)) {
-    g_auto(GValue) value = G_VALUE_INIT;
-    g_value_init(&value, G_TYPE_LONG);
-    g_value_set_long(&value, strtol(string, NULL, 10));
-    return grex_constant_value_expression_new(location, &value);
-  } else if (strncmp(string, "true", len) == 0 ||
-             strncmp(string, "false", len) == 0) {
-    g_auto(GValue) value = G_VALUE_INIT;
-    g_value_init(&value, G_TYPE_BOOLEAN);
-    g_value_set_boolean(&value, *string == 't');
-    return grex_constant_value_expression_new(location, &value);
-  } else {
-    return grex_property_expression_new(
-        location, NULL, len != -1 ? g_strndup(string, len) : g_strdup(string));
+  g_autoptr(Auxil) auxil =
+      auxil_create(location, GREX_PARSER_EXPRESSION, string, len, error);
+  g_autoptr(grex_parser_impl_context_t) ctx = grex_parser_impl_create(auxil);
+
+  g_autoptr(GObject) result = NULL;
+  if (grex_parser_impl_parse(ctx, (void **)&result)) {
+    auxil_expected_eof(auxil);
+    return NULL;
   }
+
+  return result != NULL ? GREX_EXPRESSION(g_steal_pointer(&result)) : NULL;
 }
 
 /**
@@ -136,6 +133,16 @@ grex_expression_evaluate(GrexExpression *expression,
   GrexExpressionClass *expression_class = GREX_EXPRESSION_GET_CLASS(expression);
   g_return_val_if_fail(expression_class->evaluate != NULL, NULL);
   return expression_class->evaluate(expression, context, flags, error);
+}
+
+void
+grex_set_expression_parse_error(GError **error, GrexSourceLocation *location,
+                                int code, const char *format, ...) {
+  va_list va;
+  va_start(va, format);
+  grex_set_located_error_va(error, location, GREX_EXPRESSION_PARSE_ERROR, code,
+                            format, va);
+  va_end(va);
 }
 
 void

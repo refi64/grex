@@ -1,3 +1,6 @@
 [submodule "gpropz"]
 	path = subprojects/gpropz
 	url = https://github.com/refi64/gpropz
+[submodule "subprojects/packcc"]
+	path = subprojects/packcc
+	url = https://github.com/refi64/packcc

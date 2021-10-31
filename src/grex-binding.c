@@ -6,6 +6,7 @@
 
 #include "gpropz.h"
 #include "grex-enums.h"
+#include "grex-parser-private.h"
 
 typedef enum {
   SEGMENT_CONSTANT,
@@ -349,22 +350,6 @@ grex_binding_builder_build(GrexBindingBuilder *builder,
                                       "location", location, NULL);
   binding->segments = g_steal_pointer(&builder->segments);
   return binding;
-}
-
-static void
-update_location(const char *start, const char *end, int *line, int *col) {
-  for (;;) {
-    const char *newline = memchr(start, '\n', end - start);
-    if (newline == NULL) {
-      break;
-    }
-
-    (*line)++;
-    *col = 0;
-    start = newline + 1;
-  }
-
-  *col += end - start;
 }
 
 /**

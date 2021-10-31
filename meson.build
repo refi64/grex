@@ -10,6 +10,9 @@ project('grex', 'c',
 gpropz_proj = subproject('gpropz')
 gpropz_dep = gpropz_proj.get_variable('gpropz_dep')
 
+packcc_proj = subproject('packcc')
+g_packcc = packcc_proj.get_variable('packcc')
+
 pymod = import('python')
 g_python = pymod.find_installation(
   'python3',

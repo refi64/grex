@@ -3,7 +3,6 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 gnome = import('gnome')
-
 # TODO: add stuff here
 conf_data = configuration_data()
 
@@ -13,7 +12,17 @@ grex_config_h = configure_file(
   configuration : conf_data,
 )
 
+grex_parser_files = custom_target('grex-parser-impl',
+  output : ['grex-parser-impl.c', 'grex-parser-impl.h'],
+  input : 'grex-parser.peg',
+  command : ['../packcc.sh', g_packcc, '@INPUT@', '@OUTPUT0@', '@OUTPUT1@'])
+
+grex_parser_c = grex_parser_files[0]
+grex_parser_h = grex_parser_files[1]
+
+
 grex_sources = [
+  grex_parser_c,
   'grex-binding.c',
   'grex-constant-value-expression.c',
   'grex-container-adapter.c',

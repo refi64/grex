@@ -23,6 +23,11 @@ struct _GrexExpressionClass {
                                GError **error);
 };
 
+void grex_set_expression_parse_error(GError **error,
+                                     GrexSourceLocation *location, int code,
+                                     const char *format, ...)
+    G_GNUC_PRINTF(4, 5);
+
 void grex_set_expression_evaluation_error(GError **error,
                                           GrexExpression *expression, int code,
                                           const char *format, ...)

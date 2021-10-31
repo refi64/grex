@@ -48,6 +48,11 @@ def _make_property_expr(object, prop):
     return Grex.property_expression_new(Grex.SourceLocation(), object, prop)
 
 
+def _parse_and_eval(s, context):
+    expr = Grex.Expression.parse(s, -1, Grex.SourceLocation())
+    return expr.evaluate(context, 0).get_value()
+
+
 @pytest.fixture
 def test_object():
     return _TestObject()
@@ -161,3 +166,27 @@ def test_property_expression_undefined_property(context):
 
     assert (excinfo.value.code ==
             Grex.ExpressionEvaluationError.UNDEFINED_PROPERTY), excinfo.value
+
+
+def test_constant_expression_parsing(context):
+    assert _parse_and_eval(r"'ab\'c\\\n'", context) == "ab'c\\\n"
+    assert _parse_and_eval('12345', context) == 12345
+    assert _parse_and_eval('-12345', context) == -12345
+    assert _parse_and_eval('0xff', context) == 255
+    assert _parse_and_eval('-0xff', context) == -255
+    assert _parse_and_eval('true', context) == True
+    assert _parse_and_eval('false', context) == False
+
+    with pytest.raises(GLib.GError):
+        Grex.Expression.parse("'abc", -1, Grex.SourceLocation())
+
+    with pytest.raises(GLib.GError):
+        Grex.Expression.parse('0xy', -1, Grex.SourceLocation())
+
+
+def test_property_expression_parsing(context):
+    assert _parse_and_eval('value', context) == 10
+    assert _parse_and_eval('inner.value', context) == 'string'
+
+    with pytest.raises(GLib.GError):
+        Grex.Expression.parse('inner.', -1, Grex.SourceLocation())
