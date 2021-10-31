@@ -144,7 +144,8 @@ static gboolean
 grex_gtk_box_container_directive_factory_should_auto_attach(
     GrexPropertyDirectiveFactory *factory, GrexFragmentHost *host,
     GrexFragment *fragment) {
-  return g_type_is_a(grex_fragment_get_target_type(fragment), GTK_TYPE_BOX);
+  return grex_fragment_host_get_container_adapter(host) == NULL &&
+         g_type_is_a(grex_fragment_get_target_type(fragment), GTK_TYPE_BOX);
 }
 
 static void

@@ -135,6 +135,20 @@ grex_gtk_child_property_container_directive_factory_create(
   return g_object_new(GREX_TYPE_CHILD_PROPERTY_CONTAINER_DIRECTIVE, NULL);
 }
 
+static gboolean
+grex_gtk_child_property_container_directive_factory_should_auto_attach(
+    GrexPropertyDirectiveFactory *factory, GrexFragmentHost *host,
+    GrexFragment *fragment) {
+  if (grex_fragment_host_get_container_adapter(host) != NULL) {
+    return FALSE;
+  }
+
+  GObjectClass *object_class =
+      G_OBJECT_GET_CLASS(grex_fragment_host_get_target(host));
+  GParamSpec *child = g_object_class_find_property(object_class, "child");
+  return child != NULL && g_type_is_a(child->value_type, GTK_TYPE_WIDGET);
+}
+
 static void
 grex_gtk_child_property_container_directive_factory_class_init(
     GrexGtkChildPropertyContainerDirectiveFactoryClass *klass) {
@@ -150,6 +164,8 @@ grex_gtk_child_property_container_directive_factory_class_init(
       GREX_PROPERTY_DIRECTIVE_FACTORY_CLASS(klass);
   prop_factory_class->create =
       grex_gtk_child_property_container_directive_factory_create;
+  prop_factory_class->should_auto_attach =
+      grex_gtk_child_property_container_directive_factory_should_auto_attach;
 }
 
 static void

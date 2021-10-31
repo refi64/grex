@@ -137,6 +137,15 @@ grex_gtk_widget_container_directive_factory_create(
   return g_object_new(GREX_TYPE_WIDGET_CONTAINER_DIRECTIVE, NULL);
 }
 
+static gboolean
+grex_gtk_widget_container_directive_factory_should_auto_attach(
+    GrexPropertyDirectiveFactory *factory, GrexFragmentHost *host,
+    GrexFragment *fragment) {
+  return grex_fragment_host_get_container_adapter(host) == NULL &&
+         grex_fragment_is_root(fragment) &&
+         g_type_is_a(grex_fragment_get_target_type(fragment), GTK_TYPE_WIDGET);
+}
+
 static void
 grex_gtk_widget_container_directive_factory_class_init(
     GrexGtkWidgetContainerDirectiveFactoryClass *klass) {
@@ -151,6 +160,8 @@ grex_gtk_widget_container_directive_factory_class_init(
       GREX_PROPERTY_DIRECTIVE_FACTORY_CLASS(klass);
   prop_factory_class->create =
       grex_gtk_widget_container_directive_factory_create;
+  prop_factory_class->should_auto_attach =
+      grex_gtk_widget_container_directive_factory_should_auto_attach;
 }
 
 static void
