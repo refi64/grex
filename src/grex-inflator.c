@@ -22,7 +22,7 @@ struct _GrexInflator {
   GrexExpressionContext *context;
 
   GHashTable *directive_factories;
-  GHashTable *auto_directive_names;
+  GPtrArray *auto_directive_names;
 };
 
 enum {
@@ -39,7 +39,7 @@ grex_inflator_finalize(GObject *object) {
   GrexInflator *inflator = GREX_INFLATOR(object);
 
   g_clear_pointer(&inflator->auto_directive_names,  // NOLINT
-                  g_hash_table_unref);
+                  g_ptr_array_unref);
   g_clear_pointer(&inflator->directive_factories,  // NOLINT
                   g_hash_table_unref);
 }
@@ -63,8 +63,8 @@ grex_inflator_class_init(GrexInflatorClass *klass) {
 static void
 grex_inflator_init(GrexInflator *inflator) {
   inflator->directive_factories =
-      g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
-  inflator->auto_directive_names = g_hash_table_new(g_str_hash, g_str_equal);
+      g_hash_table_new_full(g_str_hash, g_str_equal, NULL, g_object_unref);
+  inflator->auto_directive_names = g_ptr_array_new();
 }
 
 /**
@@ -161,13 +161,18 @@ grex_inflator_add_directivesv(GrexInflator *inflator,
   for (guint i = 0; i < n_directives; i++) {
     GrexDirectiveFactory *factory = directives[i];
 
-    char *name = g_strdup(grex_directive_factory_get_name(factory));
-    g_hash_table_insert(inflator->directive_factories, name,
+    const char *name = grex_directive_factory_get_name(factory);
+    if (g_hash_table_contains(inflator->directive_factories, name)) {
+      g_warning("Tried to add duplicate directive: %s", name);
+      continue;
+    }
+
+    g_hash_table_insert(inflator->directive_factories, (gpointer)name,
                         g_object_ref(factory));
 
     if (!(flags & GREX_INFLATOR_DIRECTIVE_NO_AUTO_ATTACH) &&
         GREX_IS_PROPERTY_DIRECTIVE_FACTORY(factory)) {
-      g_hash_table_add(inflator->auto_directive_names, name);
+      g_ptr_array_add(inflator->auto_directive_names, (gpointer)name);
     }
   }
 }
@@ -375,12 +380,8 @@ grex_inflator_auto_attach_directives(GrexInflator *inflator,
                                      GrexFragmentHost *host,
                                      GrexFragment *fragment,
                                      GHashTable *inserted_directives) {
-  GHashTableIter iter;
-  gpointer key;
-
-  g_hash_table_iter_init(&iter, inflator->auto_directive_names);
-  while (g_hash_table_iter_next(&iter, &key, NULL)) {
-    const char *name = key;
+  for (size_t i = 0; i < inflator->auto_directive_names->len; i++) {
+    const char *name = g_ptr_array_index(inflator->auto_directive_names, i);
     GrexPropertyDirectiveFactory *factory =
         g_hash_table_lookup(inflator->directive_factories, name);
     if (G_UNLIKELY(factory == NULL)) {
