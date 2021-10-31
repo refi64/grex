@@ -17,10 +17,16 @@ grex_gtk_child_property_container_adapter_insert_at_front(
     GrexContainerAdapter *adapter, GObject *container, GObject *child) {
   g_return_if_fail(GREX_IS_CHILD_PROPERTY_CONTAINER_ADAPTER(adapter));
 
-  g_auto(GValue) value = G_VALUE_INIT;
-  g_value_init(&value, G_TYPE_OBJECT);
-  g_value_set_object(&value, child);
-  g_object_set_property(container, "child", &value);
+  g_auto(GValue) current_child = G_VALUE_INIT;
+  g_value_init(&current_child, G_TYPE_OBJECT);
+  g_object_get_property(container, "child", &current_child);
+
+  if (g_value_get_object(&current_child) != child) {
+    g_auto(GValue) value = G_VALUE_INIT;
+    g_value_init(&value, G_TYPE_OBJECT);
+    g_value_set_object(&value, child);
+    g_object_set_property(container, "child", &value);
+  }
 }
 
 static void
@@ -29,8 +35,8 @@ grex_gtk_child_property_container_adapter_insert_next_to(
     GObject *sibling) {
   g_return_if_fail(GREX_IS_CHILD_PROPERTY_CONTAINER_ADAPTER(adapter));
 
-  g_warning("GrexGtkChildPropertyContainerAdapter can only have a single child "
-            "widget");
+  g_warning("GrexGtkChildPropertyContainerAdapter can only have a single child"
+            " widget");
 }
 
 static void

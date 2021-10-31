@@ -15,7 +15,10 @@ static void
 insert_next_to(GtkBox *box, GtkWidget *child, GtkWidget *sibling) {
   GtkWidget *current_parent = gtk_widget_get_parent(child);
   if (current_parent == GTK_WIDGET(box)) {
-    gtk_box_reorder_child_after(box, child, sibling);
+    // XXX: Technically only widget implementations are supposed to use this.
+    if (gtk_widget_get_prev_sibling(child) != sibling) {
+      gtk_box_reorder_child_after(box, child, sibling);
+    }
   } else if (current_parent == NULL) {
     gtk_box_insert_child_after(box, child, sibling);
   } else {

@@ -11,6 +11,13 @@ struct _GrexGtkWidgetContainerAdapter {
 G_DEFINE_TYPE(GrexGtkWidgetContainerAdapter, grex_gtk_widget_container_adapter,
               GREX_TYPE_CONTAINER_ADAPTER)
 
+static gboolean
+is_already_at_position(GtkWidget *container, GtkWidget *child,
+                       GtkWidget *sibling) {
+  return gtk_widget_get_parent(child) == container &&
+         gtk_widget_get_prev_sibling(child) == sibling;
+}
+
 static void
 grex_gtk_widget_container_adapter_insert_at_front(GrexContainerAdapter *adapter,
                                                   GObject *container,
@@ -21,7 +28,9 @@ grex_gtk_widget_container_adapter_insert_at_front(GrexContainerAdapter *adapter,
   GtkWidget *child_widget = GTK_WIDGET(child);
   g_return_if_fail(container_widget != NULL && child_widget != NULL);
 
-  gtk_widget_insert_after(child_widget, container_widget, NULL);
+  if (!is_already_at_position(container_widget, child_widget, NULL)) {
+    gtk_widget_insert_after(child_widget, container_widget, NULL);
+  }
 }
 
 static void
@@ -37,7 +46,9 @@ grex_gtk_widget_container_adapter_insert_next_to(GrexContainerAdapter *adapter,
   g_return_if_fail(container_widget != NULL && child_widget != NULL &&
                    sibling_widget != NULL);
 
-  gtk_widget_insert_after(child_widget, container_widget, sibling_widget);
+  if (!is_already_at_position(container_widget, child_widget, sibling_widget)) {
+    gtk_widget_insert_after(child_widget, container_widget, sibling_widget);
+  }
 }
 
 static void
