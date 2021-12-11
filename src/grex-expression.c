@@ -30,9 +30,6 @@ G_DEFINE_QUARK("grex-expression-evaluation-error-quark",
 G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE(GrexExpression, grex_expression,
                                     G_TYPE_OBJECT)
 
-G_DECLARE_FINAL_TYPE(GrexExpressionImpl, grex_expression_impl, GREX,
-                     EXPRESSION_IMPL, GrexExpression)
-
 static void
 grex_expression_dispose(GObject *object) {
   GrexExpression *expression = GREX_EXPRESSION(object);
