@@ -14,9 +14,13 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE(GrexExpressionContext, grex_expression_context, GREX,
                      EXPRESSION_CONTEXT, GObject)
 
-GrexExpressionContext *grex_expression_context_new();
-void grex_expression_context_add_scope(GrexExpressionContext *context,
-                                       GObject *scope);
+GrexExpressionContext *grex_expression_context_new(GObject *scope);
+
+gboolean grex_expression_context_insert(GrexExpressionContext *context,
+                                        const char *name, const GValue *value);
+gboolean grex_expression_context_find_name(GrexExpressionContext *context,
+                                           const char *name, GValue *dest,
+                                           GObject **originating_scope);
 
 void grex_expression_context_reset_dependencies(GrexExpressionContext *context);
 

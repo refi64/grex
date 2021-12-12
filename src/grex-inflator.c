@@ -91,8 +91,7 @@ grex_inflator_new(GrexExpressionContext *context) {
  */
 GrexInflator *
 grex_inflator_new_with_scope(GObject *scope) {
-  g_autoptr(GrexExpressionContext) context = grex_expression_context_new();
-  grex_expression_context_add_scope(context, scope);
+  g_autoptr(GrexExpressionContext) context = grex_expression_context_new(scope);
   return grex_inflator_new(context);
 }
 

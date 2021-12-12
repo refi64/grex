@@ -111,20 +111,20 @@ grex_property_expression_evaluate(GrexExpression *expression,
   GrexPropertyExpression *property_expression =
       GREX_PROPERTY_EXPRESSION(expression);
 
-  // Hoisted out here to ensure it always lives longer than the object within,
-  // without needing any refcount hackery.
-  g_autoptr(GrexValueHolder) lookup_target_holder = NULL;
-  GObject *lookup_target = NULL;
+  g_autoptr(GObject) originating_object = NULL;
+  g_auto(GValue) value = G_VALUE_INIT;
+
   if (property_expression->object != NULL) {
-    lookup_target_holder = grex_expression_evaluate(
+    g_autoptr(GrexValueHolder) lookup_target_holder = grex_expression_evaluate(
         property_expression->object, context,
         GREX_EXPRESSION_EVALUATION_PROPAGATE_FLAGS(flags), error);
     if (lookup_target_holder == NULL) {
       return NULL;
     }
 
-    const GValue *value = grex_value_holder_get_value(lookup_target_holder);
-    GType type = G_VALUE_TYPE(value);
+    const GValue *lookup_target =
+        grex_value_holder_get_value(lookup_target_holder);
+    GType type = G_VALUE_TYPE(lookup_target);
     if (!g_type_is_a(type, G_TYPE_OBJECT)) {
       grex_set_expression_evaluation_error(
           error, property_expression->object,
@@ -133,9 +133,9 @@ grex_property_expression_evaluate(GrexExpression *expression,
       return NULL;
     }
 
-    lookup_target = g_value_get_object(value);
+    originating_object = g_object_ref(g_value_get_object(lookup_target));
 
-    if (g_object_class_find_property(G_OBJECT_GET_CLASS(lookup_target),
+    if (g_object_class_find_property(G_OBJECT_GET_CLASS(originating_object),
                                      property_expression->name) == NULL) {
       grex_set_expression_evaluation_error(
           error, expression,
@@ -143,10 +143,12 @@ grex_property_expression_evaluate(GrexExpression *expression,
           "Undefined property '%s'", property_expression->name);
       return NULL;
     }
+
+    g_object_get_property(originating_object, property_expression->name,
+                          &value);
   } else {
-    lookup_target = grex_expression_context_find_object_with_property(
-        context, property_expression->name);
-    if (lookup_target == NULL) {
+    if (!grex_expression_context_find_name(context, property_expression->name,
+                                           &value, &originating_object)) {
       grex_set_expression_evaluation_error(
           error, expression, GREX_EXPRESSION_EVALUATION_ERROR_UNDEFINED_NAME,
           "Undefined name '%s'", property_expression->name);
@@ -154,28 +156,25 @@ grex_property_expression_evaluate(GrexExpression *expression,
     }
   }
 
-  g_warn_if_fail(lookup_target != NULL);
-
-  g_auto(GValue) value = G_VALUE_INIT;
-  g_object_get_property(lookup_target, property_expression->name, &value);
-
-  if (flags & GREX_EXPRESSION_EVALUATION_TRACK_DEPENDENCIES) {
+  if (flags & GREX_EXPRESSION_EVALUATION_TRACK_DEPENDENCIES &&
+      originating_object != NULL) {
     g_autofree char *signal =
         g_strdup_printf("notify::%s", property_expression->name);
     gulong handler_id = g_signal_connect_object(
-        lookup_target, signal, G_CALLBACK(on_notify_property_changed), context,
-        0);
+        originating_object, signal, G_CALLBACK(on_notify_property_changed),
+        context, 0);
 
     ContextResetData *reset_data = g_new0(ContextResetData, 1);
-    g_weak_ref_init(&reset_data->object, lookup_target);
+    g_weak_ref_init(&reset_data->object, originating_object);
     reset_data->notify_handler_id = handler_id;
     g_signal_connect_data(context, "reset", G_CALLBACK(on_context_reset),
                           reset_data, context_reset_data_free, 0);
   }
 
-  if (flags & GREX_EXPRESSION_EVALUATION_ENABLE_PUSH) {
+  if (flags & GREX_EXPRESSION_EVALUATION_ENABLE_PUSH &&
+      originating_object != NULL) {
     PushValueData *data = g_new0(PushValueData, 1);
-    data->object = g_object_ref(lookup_target);
+    data->object = g_object_ref(originating_object);
     data->property = g_strdup(property_expression->name);
     return grex_value_holder_new_with_push_handler(&value, on_push_value, data,
                                                    push_value_data_free);

@@ -11,7 +11,4 @@
 #error "This is internal stuff, you shouldn't be here!"
 #endif
 
-GObject *grex_expression_context_find_object_with_property(
-    GrexExpressionContext *context, const char *property);
-
 void grex_expression_context_emit_changed(GrexExpressionContext *context);

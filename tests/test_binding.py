@@ -51,8 +51,7 @@ def test_constants():
 
 def test_expression():
     obj = _TestObject()
-    context = Grex.ExpressionContext()
-    context.add_scope(obj)
+    context = Grex.ExpressionContext.new(obj)
 
     changed_handler = MagicMock()
     context.connect('changed', changed_handler)
@@ -83,8 +82,7 @@ def test_expression():
 
 def test_compound():
     obj = _TestObject()
-    context = Grex.ExpressionContext()
-    context.add_scope(obj)
+    context = Grex.ExpressionContext.new(obj)
 
     builder = Grex.BindingBuilder()
     builder.add_constant('abc', -1)

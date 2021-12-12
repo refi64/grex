@@ -74,9 +74,7 @@ def test_expr(target_object):
 
 @pytest.fixture
 def context(test_object):
-    context = Grex.ExpressionContext.new()
-    context.add_scope(test_object)
-    return context
+    return Grex.ExpressionContext.new(test_object)
 
 
 @pytest.fixture
