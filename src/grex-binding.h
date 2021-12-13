@@ -46,6 +46,7 @@ GrexBindingType grex_binding_get_binding_type(GrexBinding *binding);
 GrexSourceLocation *grex_binding_get_location(GrexBinding *binding);
 
 GrexValueHolder *grex_binding_evaluate(GrexBinding *binding,
+                                       GType expected_type,
                                        GrexExpressionContext *eval_context,
                                        gboolean track_dependencies,
                                        GError **error);

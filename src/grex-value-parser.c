@@ -163,7 +163,7 @@ grex_value_parser_try_parse(GrexValueParser *parser, const char *string,
     if (type == 0) {
       g_set_error(error, GREX_VALUE_PARSER_ERROR,
                   GREX_VALUE_PARSER_ERROR_NO_MATCH,
-                  "Type '%s' cannot be converted: %s",
+                  "Type '%s' cannot be parsed: %s",
                   g_quark_to_string(g_type_qname(type)), string);
       break;
     }
@@ -171,4 +171,33 @@ grex_value_parser_try_parse(GrexValueParser *parser, const char *string,
 
   g_rw_lock_reader_unlock(&parser->lock);
   return g_steal_pointer(&result);
+}
+
+GrexValueHolder *
+grex_value_parser_try_transform(GrexValueParser *parser,
+                                GrexValueHolder *source, GType type,
+                                GError **error) {
+  const GValue *source_value = grex_value_holder_get_value(source);
+  if (source_value->g_type == type) {
+    return grex_value_holder_ref(source);
+  }
+
+  if (g_value_type_transformable(source_value->g_type, type)) {
+    g_auto(GValue) transformed_value = G_VALUE_INIT;
+    g_value_init(&transformed_value, type);
+
+    g_value_transform(source_value, &transformed_value);
+    return grex_value_holder_new(&transformed_value);
+  }
+
+  if (source_value->g_type == G_TYPE_STRING) {
+    return grex_value_parser_try_parse(parser, g_value_get_string(source_value),
+                                       type, error);
+  }
+
+  g_set_error(error, GREX_VALUE_PARSER_ERROR, GREX_VALUE_PARSER_ERROR_NO_MATCH,
+              "Type '%s' cannot be transformed from '%s'",
+              g_quark_to_string(g_type_qname(type)),
+              g_quark_to_string(g_type_qname(source_value->g_type)));
+  return NULL;
 }

@@ -212,8 +212,20 @@ grex_inflator_apply_binding(GrexInflator *inflator, GrexFragmentHost *host,
                             const char *name, GrexBinding *binding,
                             gboolean track_dependencies) {
   g_autoptr(GError) error = NULL;
-  g_autoptr(GrexValueHolder) result = grex_binding_evaluate(
-      binding, inflator->context, track_dependencies, &error);
+
+  GObjectClass *target_class =
+      G_OBJECT_GET_CLASS(grex_fragment_host_get_target(host));
+  GParamSpec *pspec = g_object_class_find_property(target_class, name);
+  if (pspec == NULL) {
+    GrexSourceLocation *location = grex_binding_get_location(binding);
+    g_autofree char *location_string = grex_source_location_format(location);
+    g_warning("%s: Invalid property '%s'", location_string, name);
+    return;
+  }
+
+  g_autoptr(GrexValueHolder) result =
+      grex_binding_evaluate(binding, pspec->value_type, inflator->context,
+                            track_dependencies, &error);
   if (result == NULL) {
     GrexSourceLocation *location = grex_binding_get_location(binding);
     g_autofree char *location_string = grex_source_location_format(location);

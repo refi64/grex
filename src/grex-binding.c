@@ -7,6 +7,7 @@
 #include "gpropz.h"
 #include "grex-enums.h"
 #include "grex-parser-private.h"
+#include "grex-value-parser.h"
 
 typedef enum {
   SEGMENT_CONSTANT,
@@ -129,7 +130,8 @@ GPROPZ_DEFINE_RO(GrexSourceLocation *, GrexBinding, grex_binding, location,
  * Returns: The resulting value, or NULL on error.
  */
 GrexValueHolder *
-grex_binding_evaluate(GrexBinding *binding, GrexExpressionContext *eval_context,
+grex_binding_evaluate(GrexBinding *binding, GType expected_type,
+                      GrexExpressionContext *eval_context,
                       gboolean track_dependencies, GError **error) {
   if (G_UNLIKELY(binding->segments == NULL)) {
     g_warning(
@@ -137,13 +139,16 @@ grex_binding_evaluate(GrexBinding *binding, GrexExpressionContext *eval_context,
     return FALSE;
   }
 
+  g_autoptr(GrexValueHolder) result = NULL;
+
   GrexExpressionEvaluationFlags flags = 0;
   if (track_dependencies) {
     flags |= GREX_EXPRESSION_EVALUATION_TRACK_DEPENDENCIES;
   }
 
+  gboolean requires_push = binding->type == GREX_BINDING_TYPE_EXPRESSION_2WAY;
+
   if (grex_binding_type_is_expression(binding->type)) {
-    gboolean requires_push = binding->type == GREX_BINDING_TYPE_EXPRESSION_2WAY;
     if (requires_push) {
       flags |= GREX_EXPRESSION_EVALUATION_ENABLE_PUSH;
     }
@@ -151,74 +156,100 @@ grex_binding_evaluate(GrexBinding *binding, GrexExpressionContext *eval_context,
     g_return_val_if_fail(binding->segments->len == 1, NULL);
     Segment *first_segment = g_ptr_array_index(binding->segments, 0);
 
-    g_autoptr(GrexValueHolder) result = grex_expression_evaluate(
-        first_segment->expression, eval_context, flags, error);
+    result = grex_expression_evaluate(first_segment->expression, eval_context,
+                                      flags, error);
     if (result == NULL) {
       return NULL;
     }
+  } else {
+    g_autoptr(GString) result_string = g_string_new("");
 
-    if (requires_push) {
-      if (!grex_value_holder_can_push(result)) {
-        grex_set_located_error(error, binding->location,
-                               GREX_BINDING_EVALUATION_ERROR,
-                               GREX_BINDING_EVALUATION_ERROR_NON_BIDIRECTIONAL,
-                               "Binding result must be bidirectional");
-        return NULL;
-      }
-    } else {
-      grex_value_holder_disable_push(result);
-    }
+    for (guint i = 0; i < binding->segments->len; i++) {
+      Segment *segment = g_ptr_array_index(binding->segments, i);
 
-    return g_steal_pointer(&result);
-  }
-
-  g_autoptr(GString) result = g_string_new("");
-
-  for (guint i = 0; i < binding->segments->len; i++) {
-    Segment *segment = g_ptr_array_index(binding->segments, i);
-
-    switch (segment->type) {
-    case SEGMENT_CONSTANT:
-      g_string_append(result, segment->constant);
-      break;
-    case SEGMENT_EXPRESSION: {
-      g_autoptr(GrexValueHolder) value_holder = grex_expression_evaluate(
-          segment->expression, eval_context, flags, error);
-      if (value_holder == NULL) {
-        return NULL;
-      }
-
-      const GValue *value = grex_value_holder_get_value(value_holder);
-      GType current_type = G_VALUE_TYPE(value);
-      if (current_type != G_TYPE_STRING) {
-        if (!g_value_type_transformable(current_type, G_TYPE_STRING)) {
-          grex_set_located_error(
-              error, binding->location, GREX_BINDING_EVALUATION_ERROR,
-              GREX_BINDING_EVALUATION_ERROR_INVALID_TYPE,
-              "Expression in compound binding must be transformable to a "
-              "string, but type '%s' is not",
-              g_type_name(current_type));
+      switch (segment->type) {
+      case SEGMENT_CONSTANT:
+        g_string_append(result_string, segment->constant);
+        break;
+      case SEGMENT_EXPRESSION: {
+        g_autoptr(GrexValueHolder) value_holder = grex_expression_evaluate(
+            segment->expression, eval_context, flags, error);
+        if (value_holder == NULL) {
           return NULL;
         }
 
-        g_auto(GValue) transformed_value = G_VALUE_INIT;
-        g_value_init(&transformed_value, G_TYPE_STRING);
-        g_value_transform(value, &transformed_value);
+        const GValue *value = grex_value_holder_get_value(value_holder);
+        GType current_type = G_VALUE_TYPE(value);
+        if (current_type != G_TYPE_STRING) {
+          if (!g_value_type_transformable(current_type, G_TYPE_STRING)) {
+            grex_set_located_error(
+                error, binding->location, GREX_BINDING_EVALUATION_ERROR,
+                GREX_BINDING_EVALUATION_ERROR_INVALID_TYPE,
+                "Expression in compound binding must be transformable to a "
+                "string, but type '%s' is not",
+                g_type_name(current_type));
+            return NULL;
+          }
 
-        g_string_append(result, g_value_get_string(&transformed_value));
-      } else {
-        g_string_append(result, g_value_get_string(value));
+          g_auto(GValue) transformed_value = G_VALUE_INIT;
+          g_value_init(&transformed_value, G_TYPE_STRING);
+          g_value_transform(value, &transformed_value);
+
+          g_string_append(result_string,
+                          g_value_get_string(&transformed_value));
+        } else {
+          g_string_append(result_string, g_value_get_string(value));
+        }
+
+        break;
       }
+      }
+    }
 
-      break;
-    }
-    }
+    g_auto(GValue) value = G_VALUE_INIT;
+    g_value_init(&value, G_TYPE_STRING);
+    g_value_take_string(&value,
+                        g_string_free(g_steal_pointer(&result_string), FALSE));
+    result = grex_value_holder_new(&value);
   }
 
-  g_auto(GValue) value = G_VALUE_INIT;
-  g_value_init(&value, G_TYPE_STRING);
-  g_value_take_string(&value, g_string_free(g_steal_pointer(&result), FALSE));
-  return grex_value_holder_new(&value);
+  gboolean lost_push_during_transform = FALSE;
+  if (grex_value_holder_get_value(result)->g_type != expected_type) {
+    g_autoptr(GError) local_error = NULL;
+    g_autoptr(GrexValueHolder) transformed_value =
+        grex_value_parser_try_transform(grex_value_parser_default(), result,
+                                        expected_type, &local_error);
+    if (transformed_value == NULL) {
+      grex_set_located_error(error, binding->location, local_error->domain,
+                             local_error->code, "%s", local_error->message);
+      return NULL;
+    }
+
+    if (grex_value_holder_can_push(result) &&
+        !grex_value_holder_can_push(transformed_value)) {
+      lost_push_during_transform = TRUE;
+    }
+
+    g_clear_pointer(&result, grex_value_holder_unref);  // NOLINT
+    result = g_steal_pointer(&transformed_value);
+  }
+
+  if (requires_push) {
+    if (!grex_value_holder_can_push(result)) {
+      grex_set_located_error(
+          error, binding->location, GREX_BINDING_EVALUATION_ERROR,
+          GREX_BINDING_EVALUATION_ERROR_NON_BIDIRECTIONAL,
+          "Binding result must be bidirectional%s",
+          lost_push_during_transform
+              ? " (bidirectionality was lost during transform)"
+              : "");
+      return NULL;
+    }
+  } else {
+    grex_value_holder_disable_push(result);
+  }
+
+  return g_steal_pointer(&result);
 }
 
 static void

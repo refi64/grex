@@ -63,7 +63,7 @@ def test_fragment_parsing_bindings():
     fragment = Grex.Fragment.parse_xml('<GtkLabel text="Hello!"/>', -1)
     assert fragment.get_binding_targets() == ['text']
 
-    assert fragment.get_binding('text').evaluate(Grex.ExpressionContext(),
+    assert fragment.get_binding('text').evaluate(str, Grex.ExpressionContext(),
                                                  False).get_value() == 'Hello!'
 
 

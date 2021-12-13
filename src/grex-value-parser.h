@@ -40,4 +40,8 @@ GrexValueHolder *grex_value_parser_try_parse(GrexValueParser *parser,
                                              const char *string, GType type,
                                              GError **error);
 
+GrexValueHolder *grex_value_parser_try_transform(GrexValueParser *parser,
+                                                 GrexValueHolder *source,
+                                                 GType type, GError **error);
+
 G_END_DECLS
