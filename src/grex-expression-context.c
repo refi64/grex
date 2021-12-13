@@ -92,7 +92,7 @@ grex_expression_context_new(GObject *scope) {
 /**
  * grex_expression_context_get_scope:
  *
- * Returns the scope
+ * Returns the scope.
  */
 GPROPZ_DEFINE_RO(GObject *, GrexExpressionContext, grex_expression_context,
                  scope, properties[PROP_SCOPE])

@@ -16,6 +16,8 @@ G_DECLARE_FINAL_TYPE(GrexExpressionContext, grex_expression_context, GREX,
 
 GrexExpressionContext *grex_expression_context_new(GObject *scope);
 
+GObject *grex_expression_context_get_scope(GrexExpressionContext *context);
+
 gboolean grex_expression_context_insert(GrexExpressionContext *context,
                                         const char *name, const GValue *value);
 gboolean grex_expression_context_find_name(GrexExpressionContext *context,

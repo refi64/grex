@@ -217,8 +217,8 @@ grex_property_expression_init(GrexPropertyExpression *expression) {}
  * grex_property_expression_new:
  * @location: (transfer none): This expression's source location.
  * @object: (transfer none) (allow-none): The expression representing the object
- *          to get this property from, or NULL to get it from the context's
- *          scopes.
+ *          to get this property from, or %NULL to get it from the context's
+ *          scope.
  * @name: The property name.
  *
  * Creates an expression that retrieves a property from an object (or the global
