@@ -9,6 +9,11 @@
 
 #include <glib.h>
 
+#define OWN_OBJ(x)                 \
+  G_GNUC_UNUSED g_autoptr(GObject) \
+  G_PASTE(v, __LINE__) = G_OBJECT(x)
+#define OWN_STR(x) G_GNUC_UNUSED g_autofree char *G_PASTE(v, __LINE__) = x
+
 // Declare g_autoptr cleanup funcs for packcc's context type.
 typedef struct grex_parser_impl_context_tag grex_parser_impl_context_t;
 void grex_parser_impl_destroy(grex_parser_impl_context_t *ctx);
@@ -83,10 +88,6 @@ auxil_get_location(Auxil *auxil, size_t pos) {
   return grex_source_location_new_offset(auxil->location, line, col);
 }
 
-#define OWN_OBJ(x)                 \
-  G_GNUC_UNUSED g_autoptr(GObject) \
-  G_PASTE(v, __LINE__) = G_OBJECT(x)
-#define OWN_STR(x) G_GNUC_UNUSED g_autofree char *G_PASTE(v, __LINE__) = x
 #define AUXIL_GET_LOCATION(pos) \
   g_autoptr(GrexSourceLocation) location = auxil_get_location(auxil, pos)
 

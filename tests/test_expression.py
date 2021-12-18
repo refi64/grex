@@ -308,3 +308,20 @@ def test_property_expression_parsing(context):
 
     with pytest.raises(GLib.GError):
         Grex.Expression.parse('inner.', -1, Grex.SourceLocation())
+
+
+def test_signal_expression_parsing(test_object, context):
+    basic_handler = MagicMock()
+    test_object.inner.connect('basic-signal', basic_handler)
+    _parse_and_eval('emit inner:basic-signal()', context)
+    basic_handler.assert_called_once()
+
+    detailed_handler = MagicMock()
+    test_object.connect('detailed-signal::detail', detailed_handler)
+    _parse_and_eval('emit detailed-signal::detail()', context)
+    detailed_handler.assert_called_once()
+
+    assert _parse_and_eval("emit echo-signal(1, 'end')",
+                           context) == 'args: 1 GTK_ALIGN_END'
+    assert _parse_and_eval("emit echo-signal(1, 'end', )",
+                           context) == 'args: 1 GTK_ALIGN_END'

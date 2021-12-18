@@ -26,7 +26,42 @@
 
 start <- e:expr { $$ = e; }
 
-expr <- l:literal { $$ = l; } / p:prop { $$ = p; }
+expr <- l:literal { $$ = l; } / e:emit { $$ = e; } / p:prop { $$ = p; }
+
+emit <- 'emit' _ t:emitTarget { $$ = t; }
+
+emitTarget
+  <- obj:expr _ ':' _ id:ident _ detail:emitDetail _ a:args {
+    AUXIL_GET_LOCATION($0s);
+    OWN_OBJ(obj);
+    OWN_STR(id);
+    OWN_STR(detail);
+    g_autoptr(GPtrArray) args = a;
+    $$ = grex_signal_expression_new(location, obj, id, detail,
+                                    (GrexExpression**)args->pdata, args->len);
+  } / id:ident _ detail:emitDetail _ a:args {
+    AUXIL_GET_LOCATION($0s);
+    OWN_STR(id);
+    OWN_STR(detail);
+    g_autoptr(GPtrArray) args = a;
+    $$ = grex_signal_expression_new(location, NULL, id, detail,
+                                    (GrexExpression**)args->pdata, args->len);
+  }
+
+emitDetail <- '::' _ detail:ident { $$ = detail; }
+            / '' { $$ = NULL; }
+
+args <- '(' _ l:argsList (_ ',')? _ ')' { $$ = l; }
+      / '(' _ ')' { $$ = g_ptr_array_new(); }
+
+argsList
+  <- l:argsList _ ',' _ arg:expr {
+    $$ = l;
+    g_ptr_array_add($$, arg);
+  } / arg:expr {
+    $$ = g_ptr_array_new_with_free_func(g_object_unref);
+    g_ptr_array_add($$, arg);
+  }
 
 prop
   <- obj:expr _ '.' _ id:ident {
