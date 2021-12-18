@@ -39,6 +39,7 @@ grex_sources = [
   'grex-property-directive.c',
   'grex-property-expression.c',
   'grex-reactive-inflator.c',
+  'grex-signal-expression.c',
   'grex-source-location.c',
   'grex-structural-directive.c',
   'grex-template.c',

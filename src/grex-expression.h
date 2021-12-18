@@ -17,7 +17,9 @@ GQuark grex_expression_parse_error_quark();
 typedef enum {
   GREX_EXPRESSION_EVALUATION_ERROR_UNDEFINED_NAME,
   GREX_EXPRESSION_EVALUATION_ERROR_UNDEFINED_PROPERTY,
+  GREX_EXPRESSION_EVALUATION_ERROR_UNDEFINED_SIGNAL,
   GREX_EXPRESSION_EVALUATION_ERROR_INVALID_TYPE,
+  GREX_EXPRESSION_EVALUATION_ERROR_INVALID_ARGUMENT_COUNT,
 } GrexExpressionEvaluationError;
 
 #define GREX_EXPRESSION_EVALUATION_ERROR \
@@ -52,5 +54,11 @@ GrexExpression *grex_constant_value_expression_new(GrexSourceLocation *location,
 GrexExpression *grex_property_expression_new(GrexSourceLocation *location,
                                              GrexExpression *object,
                                              const char *name);
+
+GrexExpression *grex_signal_expression_new(GrexSourceLocation *location,
+                                           GrexExpression *object,
+                                           const char *signal,
+                                           const char *detail,
+                                           GrexExpression **args, gsize n_args);
 
 G_END_DECLS

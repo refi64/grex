@@ -22,6 +22,10 @@ class _InnerObject(GObject.Object):
     def value(self, value):
         self._value = value
 
+    @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST)
+    def basic_signal(self):
+        pass
+
 
 class _TestObject(GObject.Object):
     NEXT_VALUE = 20
@@ -43,9 +47,29 @@ class _TestObject(GObject.Object):
     def inner(self):
         return self._inner
 
+    @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST)
+    def basic_signal(self):
+        pass
+
+    @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST,
+                    arg_types=(int, ),
+                    return_type=str)
+    def inc_signal(self, x):
+        return f'arg: {x}'
+
+    @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST
+                    | GObject.SignalFlags.DETAILED)
+    def detailed_signal(self):
+        pass
+
 
 def _make_property_expr(object, prop):
     return Grex.property_expression_new(Grex.SourceLocation(), object, prop)
+
+
+def _make_signal_expr(object, signal, *, detail=None, args=[]):
+    return Grex.signal_expression_new(Grex.SourceLocation(), object, signal,
+                                      detail, args)
 
 
 def _parse_and_eval(s, context):
@@ -64,12 +88,22 @@ def target_object(test_object, request):
 
 
 @pytest.fixture
-def test_expr(target_object):
+def test_property_expr(target_object):
     is_inner = isinstance(target_object, _InnerObject)
     if is_inner:
         return _make_property_expr(_make_property_expr(None, 'inner'), 'value')
     else:
         return _make_property_expr(None, 'value')
+
+
+@pytest.fixture
+def test_signal_expr(target_object):
+    is_inner = isinstance(target_object, _InnerObject)
+    if is_inner:
+        return _make_signal_expr(_make_property_expr(None, 'inner'),
+                                 'basic-signal')
+    else:
+        return _make_signal_expr(None, 'basic-signal')
 
 
 @pytest.fixture
@@ -97,19 +131,20 @@ def test_property_expression_constant():
     assert not expr.is_constant()
 
 
-def test_property_expression_basic(target_object, test_expr, context,
+def test_property_expression_basic(target_object, test_property_expr, context,
                                    changed_handler):
-    result = test_expr.evaluate(context, Grex.ExpressionEvaluationFlags.NONE)
+    result = test_property_expr.evaluate(context,
+                                         Grex.ExpressionEvaluationFlags.NONE)
     assert not result.can_push()
     assert result.get_value() == target_object.value
     target_object.value = target_object.NEXT_VALUE
     changed_handler.assert_not_called()
 
 
-def test_property_expression_push(target_object, test_expr, context,
+def test_property_expression_push(target_object, test_property_expr, context,
                                   changed_handler):
-    result = test_expr.evaluate(context,
-                                Grex.ExpressionEvaluationFlags.ENABLE_PUSH)
+    result = test_property_expr.evaluate(
+        context, Grex.ExpressionEvaluationFlags.ENABLE_PUSH)
     assert result.can_push()
     assert result.get_value() == target_object.value
     result.push(target_object.NEXT_VALUE)
@@ -117,9 +152,9 @@ def test_property_expression_push(target_object, test_expr, context,
     changed_handler.assert_not_called()
 
 
-def test_property_expression_deps(target_object, test_expr, context,
+def test_property_expression_deps(target_object, test_property_expr, context,
                                   changed_handler):
-    result = test_expr.evaluate(
+    result = test_property_expr.evaluate(
         context, Grex.ExpressionEvaluationFlags.TRACK_DEPENDENCIES)
     assert not result.can_push()
     assert result.get_value() == target_object.value
@@ -127,9 +162,9 @@ def test_property_expression_deps(target_object, test_expr, context,
     changed_handler.assert_called_once()
 
 
-def test_property_expression_push_and_deps(target_object, test_expr, context,
-                                           changed_handler):
-    result = test_expr.evaluate(
+def test_property_expression_push_and_deps(target_object, test_property_expr,
+                                           context, changed_handler):
+    result = test_property_expr.evaluate(
         context, Grex.ExpressionEvaluationFlags.ENABLE_PUSH
         | Grex.ExpressionEvaluationFlags.TRACK_DEPENDENCIES)
     assert result.can_push()
@@ -164,6 +199,36 @@ def test_property_expression_undefined_property(context):
 
     assert (excinfo.value.code ==
             Grex.ExpressionEvaluationError.UNDEFINED_PROPERTY), excinfo.value
+
+
+def test_signal_expression_basic(target_object, test_signal_expr, context):
+    handler = MagicMock()
+    target_object.connect('basic-signal', handler)
+
+    result = test_signal_expr.evaluate(context,
+                                       Grex.ExpressionEvaluationFlags.NONE)
+    assert result.get_value() is None
+
+    handler.assert_called_once()
+
+
+def test_signal_expression_args(context):
+    expr = _make_signal_expr(
+        None,
+        'inc-signal',
+        args=[Grex.constant_value_expression_new(Grex.SourceLocation(), 1)])
+    result = expr.evaluate(context, Grex.ExpressionEvaluationFlags.NONE)
+    assert result.get_value() == 'arg: 1'
+
+
+def test_signal_expression_detail(test_object, context):
+    handler = MagicMock()
+    test_object.connect('detailed-signal::test', handler)
+
+    expr = _make_signal_expr(None, 'detailed-signal', detail='test')
+    expr.evaluate(context, Grex.ExpressionEvaluationFlags.NONE)
+
+    handler.assert_called_once()
 
 
 def test_constant_expression_parsing(context):
