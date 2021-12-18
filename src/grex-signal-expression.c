@@ -73,27 +73,28 @@ grex_signal_expression_evaluate_args(GrexSignalExpression *signal_expr,
   g_autoptr(GPtrArray) args =
       g_ptr_array_new_with_free_func((GDestroyNotify)grex_value_holder_unref);
   for (guint i = 0; i < signal_expr->args->len; i++) {
-    g_autoptr(GrexValueHolder) arg = grex_expression_evaluate(
-        g_ptr_array_index(signal_expr->args, i), context,
-        GREX_EXPRESSION_EVALUATION_PROPAGATE_FLAGS(flags), error);
-    if (arg == NULL) {
+    GrexExpression *arg_expr = g_ptr_array_index(signal_expr->args, i);
+    g_autoptr(GrexValueHolder) arg_value = grex_expression_evaluate(
+        arg_expr, context, GREX_EXPRESSION_EVALUATION_PROPAGATE_FLAGS(flags),
+        error);
+    if (arg_value == NULL) {
       return NULL;
     }
 
     g_autoptr(GError) transform_error = NULL;
     g_autoptr(GrexValueHolder) transformed_arg =
-        grex_value_parser_try_transform(parser, arg, signal->param_types[i],
-                                        &transform_error);
+        grex_value_parser_try_transform(
+            parser, arg_value, signal->param_types[i], &transform_error);
     if (transformed_arg == NULL) {
       grex_set_expression_evaluation_error(
-          error, GREX_EXPRESSION(signal_expr),
+          error, GREX_EXPRESSION(arg_expr),
           GREX_EXPRESSION_EVALUATION_ERROR_INVALID_TYPE,
           "Failed to convert type for '%s' argument %u: %s",
           signal_expr->signal, i + 1, transform_error->message);
       return NULL;
     }
 
-    g_ptr_array_add(args, g_steal_pointer(&arg));
+    g_ptr_array_add(args, g_steal_pointer(&transformed_arg));
   }
 
   return g_steal_pointer(&args);
@@ -159,7 +160,7 @@ grex_signal_expression_evaluate(GrexExpression *expression,
   if (signal_expr->detail != NULL) {
     if (!(query.signal_flags & G_SIGNAL_DETAILED)) {
       grex_set_expression_evaluation_error(
-          error, expression, GREX_EXPRESSION_EVALUATION_ERROR_UNDEFINED_SIGNAL,
+          error, expression, GREX_EXPRESSION_EVALUATION_ERROR_INVALID_DETAIL,
           "Signal '%s' does not take any detail", signal_expr->signal);
       return NULL;
     }
@@ -167,6 +168,11 @@ grex_signal_expression_evaluate(GrexExpression *expression,
     // XXX: Not sure if we should be using g_quark_try_string instead, is it
     // invalid to emit a detail value that's not already a quark?
     detail = g_quark_from_string(signal_expr->detail);
+  } else if (query.signal_flags & G_SIGNAL_DETAILED) {
+    grex_set_expression_evaluation_error(
+        error, expression, GREX_EXPRESSION_EVALUATION_ERROR_INVALID_DETAIL,
+        "Signal '%s' needs a detail value", signal_expr->signal);
+    return NULL;
   }
 
   GrexValueParser *parser = grex_value_parser_default();
@@ -176,7 +182,7 @@ grex_signal_expression_evaluate(GrexExpression *expression,
     return NULL;
   }
 
-  g_array_set_size(values, values->len + 1);
+  g_array_set_size(values, values->len + args->len);
   for (gsize i = 0; i < args->len; i++) {
     const GValue *source =
         grex_value_holder_get_value(g_ptr_array_index(args, i));

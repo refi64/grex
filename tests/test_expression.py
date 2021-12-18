@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from gi.repository import GLib, GObject, Grex
+from gi.repository import GLib, GObject, Gtk, Grex
 from unittest.mock import MagicMock
 import pytest
 
@@ -52,10 +52,10 @@ class _TestObject(GObject.Object):
         pass
 
     @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST,
-                    arg_types=(int, ),
+                    arg_types=(int, Gtk.Align),
                     return_type=str)
-    def inc_signal(self, x):
-        return f'arg: {x}'
+    def echo_signal(self, x, align):
+        return f'args: {x} {align.value_name}'
 
     @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST
                     | GObject.SignalFlags.DETAILED)
@@ -215,10 +215,13 @@ def test_signal_expression_basic(target_object, test_signal_expr, context):
 def test_signal_expression_args(context):
     expr = _make_signal_expr(
         None,
-        'inc-signal',
-        args=[Grex.constant_value_expression_new(Grex.SourceLocation(), 1)])
+        'echo-signal',
+        args=[
+            Grex.constant_value_expression_new(Grex.SourceLocation(), 1),
+            Grex.constant_value_expression_new(Grex.SourceLocation(), 'start')
+        ])
     result = expr.evaluate(context, Grex.ExpressionEvaluationFlags.NONE)
-    assert result.get_value() == 'arg: 1'
+    assert result.get_value() == 'args: 1 GTK_ALIGN_START'
 
 
 def test_signal_expression_detail(test_object, context):
@@ -229,6 +232,58 @@ def test_signal_expression_detail(test_object, context):
     expr.evaluate(context, Grex.ExpressionEvaluationFlags.NONE)
 
     handler.assert_called_once()
+
+
+def test_signal_expression_undefined_signal(context):
+    expr = _make_signal_expr(None, 'xyz')
+    with pytest.raises(GLib.GError) as excinfo:
+        expr.evaluate(context, 0)
+
+    assert (excinfo.value.code ==
+            Grex.ExpressionEvaluationError.UNDEFINED_SIGNAL), excinfo.value
+
+
+def test_signal_expression_invalid_detail(context):
+    expr = _make_signal_expr(None, 'basic-signal', detail='detail')
+    with pytest.raises(GLib.GError) as excinfo:
+        expr.evaluate(context, 0)
+
+    assert (excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_DETAIL
+            ), excinfo.value
+
+    expr = _make_signal_expr(None, 'detailed-signal')
+    with pytest.raises(GLib.GError) as excinfo:
+        expr.evaluate(context, 0)
+
+    assert (excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_DETAIL
+            ), excinfo.value
+
+
+def test_signal_expression_invalid_args_count(context):
+    expr = _make_signal_expr(
+        None,
+        'basic-signal',
+        args=[Grex.constant_value_expression_new(Grex.SourceLocation(), 1)])
+    with pytest.raises(GLib.GError) as excinfo:
+        expr.evaluate(context, 0)
+
+    assert (excinfo.value.code == Grex.ExpressionEvaluationError.
+            INVALID_ARGUMENT_COUNT), excinfo.value
+
+
+def test_signal_expression_invalid_type(context):
+    expr = _make_signal_expr(
+        None,
+        'echo-signal',
+        args=[
+            Grex.constant_value_expression_new(Grex.SourceLocation(), 'abc'),
+            Grex.constant_value_expression_new(Grex.SourceLocation(), 'def')
+        ])
+    with pytest.raises(GLib.GError) as excinfo:
+        expr.evaluate(context, 0)
+
+    assert (excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_TYPE
+            ), excinfo.value
 
 
 def test_constant_expression_parsing(context):
