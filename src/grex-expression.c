@@ -76,8 +76,7 @@ grex_expression_init(GrexExpression *expression) {}
 GrexExpression *
 grex_expression_parse(const char *string, gssize len,
                       GrexSourceLocation *location, GError **error) {
-  g_autoptr(Auxil) auxil =
-      auxil_create(location, GREX_PARSER_EXPRESSION, string, len, error);
+  g_autoptr(Auxil) auxil = auxil_create(location, string, len, error);
   g_autoptr(grex_parser_impl_context_t) ctx = grex_parser_impl_create(auxil);
 
   g_autoptr(GObject) result = NULL;

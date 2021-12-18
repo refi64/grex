@@ -24,7 +24,7 @@
 
 }
 
-start <- 'E' _ e:expr _ { $$ = e; }
+start <- e:expr { $$ = e; }
 
 expr <- l:literal { $$ = l; } / p:prop { $$ = p; }
 

@@ -9,15 +9,11 @@
 
 #include <glib.h>
 
-// Declare g_autoptr cleanu pfuncs for packcc's context type.
+// Declare g_autoptr cleanup funcs for packcc's context type.
 typedef struct grex_parser_impl_context_tag grex_parser_impl_context_t;
 void grex_parser_impl_destroy(grex_parser_impl_context_t *ctx);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(grex_parser_impl_context_t,
                               grex_parser_impl_destroy)
-
-typedef enum {
-  GREX_PARSER_EXPRESSION = 'E',
-} GrexParserType;
 
 typedef union {
   GrexExpression *expr;
@@ -28,9 +24,6 @@ typedef struct {
   const char *str;
   size_t len;
   gssize pos;
-
-  GrexParserType type;
-  gboolean sent_type;
 
   GError **error;
 } Auxil;
@@ -43,13 +36,12 @@ auxil_free(Auxil *auxil) {
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(Auxil, auxil_free)
 
 G_GNUC_UNUSED static inline Auxil *
-auxil_create(GrexSourceLocation *location, GrexParserType type, const char *str,
-             gssize len, GError **error) {
+auxil_create(GrexSourceLocation *location, const char *str, gssize len,
+             GError **error) {
   Auxil *auxil = g_new0(Auxil, 1);
   auxil->location = location;
   auxil->str = str;
   auxil->len = len != -1 ? len : strlen(str);
-  auxil->type = type;
   auxil->error = error;
   return auxil;
 }
@@ -61,11 +53,6 @@ auxil_is_eof(Auxil *auxil) {
 
 G_GNUC_UNUSED static inline int
 auxil_nextchar(Auxil *auxil) {
-  if (!auxil->sent_type) {
-    auxil->sent_type = TRUE;
-    return auxil->type;
-  }
-
   if (auxil_is_eof(auxil)) {
     return -1;
   }
