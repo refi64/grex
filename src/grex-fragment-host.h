@@ -7,6 +7,7 @@
 #include "grex-config.h"
 #include "grex-container-adapter.h"
 #include "grex-fragment.h"
+#include "grex-key.h"
 
 G_BEGIN_DECLS
 
@@ -35,27 +36,28 @@ void grex_fragment_host_begin_inflation(GrexFragmentHost *host);
 
 void grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
                                      GrexValueHolder *value);
-void grex_fragment_host_add_signal(GrexFragmentHost *host, const char *signal,
-                                   GClosure *closure, gboolean after);
+void grex_fragment_host_add_signal(GrexFragmentHost *host, GrexKey *key,
+                                   const char *signal, GClosure *closure,
+                                   gboolean after);
 
 GrexPropertyDirective *
 grex_fragment_host_get_leftover_property_directive(GrexFragmentHost *host,
-                                                   guintptr key);
+                                                   GrexKey *key);
 void
-grex_fragment_host_add_property_directive(GrexFragmentHost *host, guintptr key,
+grex_fragment_host_add_property_directive(GrexFragmentHost *host, GrexKey *key,
                                           GrexPropertyDirective *directive);
 
 void grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host);
 
 GrexStructuralDirective *
 grex_fragment_host_get_leftover_structural_directive(GrexFragmentHost *host,
-                                                     guintptr key);
+                                                     GrexKey *key);
 void grex_fragment_host_add_structural_directive(
-    GrexFragmentHost *host, guintptr key, GrexStructuralDirective *directive);
+    GrexFragmentHost *host, GrexKey *key, GrexStructuralDirective *directive);
 
 GObject *grex_fragment_host_get_leftover_child(GrexFragmentHost *host,
-                                               guintptr key);
-void grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
+                                               GrexKey *key);
+void grex_fragment_host_add_inflated_child(GrexFragmentHost *host, GrexKey *key,
                                            GObject *child);
 
 void grex_fragment_host_commit_inflation(GrexFragmentHost *host);

@@ -5,6 +5,7 @@
 #include "grex-fragment-host.h"
 
 #include "gpropz.h"
+#include "grex-key-private.h"
 #include "grex-property-directive.h"
 
 G_DEFINE_QUARK("grex-fragment-host-on-target", grex_fragment_host_on_target)
@@ -22,14 +23,14 @@ typedef struct {
 } IncrementalTableDiff;
 
 static void
-incremental_table_diff_init(IncrementalTableDiff *diff, GHashFunc hash_func,
-                            GEqualFunc equal_func,
-                            GDestroyNotify key_destroy_func,
+incremental_table_diff_init(IncrementalTableDiff *diff,
                             GDestroyNotify value_destroy_func) {
-  diff->leftovers = g_hash_table_new_full(hash_func, equal_func,
-                                          key_destroy_func, value_destroy_func);
-  diff->current = g_hash_table_new_full(hash_func, equal_func, key_destroy_func,
-                                        value_destroy_func);
+  diff->leftovers = g_hash_table_new_full(
+      (GHashFunc)grex_key_hash, (GEqualFunc)grex_key_equals,
+      (GDestroyNotify)grex_key_unref, value_destroy_func);
+  diff->current = g_hash_table_new_full(
+      (GHashFunc)grex_key_hash, (GEqualFunc)grex_key_equals,
+      (GDestroyNotify)grex_key_unref, value_destroy_func);
 }
 
 static void
@@ -48,24 +49,24 @@ incremental_table_diff_begin_inflation(IncrementalTableDiff *diff) {
 
 static gpointer
 incremental_table_diff_get_leftover_value(IncrementalTableDiff *diff,
-                                          guintptr key) {
-  return g_hash_table_lookup(diff->leftovers, (gpointer)key);
+                                          const GrexKey *key) {
+  return g_hash_table_lookup(diff->leftovers, key);
 }
 
 static gboolean
 incremental_table_diff_is_in_current_inflation(IncrementalTableDiff *diff,
-                                               guintptr key) {
-  return g_hash_table_contains(diff->current, (gpointer)key);
+                                               const GrexKey *key) {
+  return g_hash_table_contains(diff->current, key);
 }
 
 static void
 incremental_table_diff_add_to_current_inflation(IncrementalTableDiff *diff,
-                                                guintptr key, gpointer value) {
-  g_hash_table_remove(diff->leftovers, (gpointer)key);
-  g_hash_table_insert(diff->current, (gpointer)key, value);
+                                                GrexKey *key, gpointer value) {
+  g_hash_table_remove(diff->leftovers, key);
+  g_hash_table_insert(diff->current, grex_key_ref(key), value);
 }
 
-typedef void (*IncrementalTableDiffRemovalCallback)(gpointer key,
+typedef void (*IncrementalTableDiffRemovalCallback)(GrexKey *key,
                                                     gpointer value,
                                                     gpointer user_data);
 
@@ -228,16 +229,11 @@ static void
 grex_fragment_host_init(GrexFragmentHost *host) {
   g_weak_ref_init(&host->target, NULL);
 
-  incremental_table_diff_init(&host->property_diff, g_str_hash, g_str_equal,
-                              g_free, (GDestroyNotify)grex_value_holder_unref);
-  incremental_table_diff_init(&host->signal_diff, g_str_hash, g_str_equal,
-                              g_free, NULL);
-  incremental_table_diff_init(&host->prop_directive_diff, g_direct_hash,
-                              g_direct_equal, NULL, g_object_unref);
-  incremental_table_diff_init(&host->struct_directive_diff, g_direct_hash,
-                              g_direct_equal, NULL, g_object_unref);
-  incremental_table_diff_init(&host->children_diff, g_direct_hash,
-                              g_direct_equal, NULL, g_object_unref);
+  incremental_table_diff_init(&host->property_diff, g_free);
+  incremental_table_diff_init(&host->signal_diff, NULL);
+  incremental_table_diff_init(&host->prop_directive_diff, g_object_unref);
+  incremental_table_diff_init(&host->struct_directive_diff, g_object_unref);
+  incremental_table_diff_init(&host->children_diff, g_object_unref);
 }
 
 /**
@@ -362,7 +358,7 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
  */
 GrexPropertyDirective *
 grex_fragment_host_get_leftover_property_directive(GrexFragmentHost *host,
-                                                   guintptr key) {
+                                                   GrexKey *key) {
   g_return_val_if_fail(host->in_inflation, NULL);
   return incremental_table_diff_get_leftover_value(&host->prop_directive_diff,
                                                    key);
@@ -382,7 +378,7 @@ grex_fragment_host_get_leftover_property_directive(GrexFragmentHost *host,
  */
 GrexStructuralDirective *
 grex_fragment_host_get_leftover_structural_directive(GrexFragmentHost *host,
-                                                     guintptr key) {
+                                                     GrexKey *key) {
   g_return_val_if_fail(host->in_inflation, NULL);
   return incremental_table_diff_get_leftover_value(&host->struct_directive_diff,
                                                    key);
@@ -401,7 +397,7 @@ grex_fragment_host_get_leftover_structural_directive(GrexFragmentHost *host,
  * Returns: (transfer none): The child, or NULL if none was found.
  */
 GObject *
-grex_fragment_host_get_leftover_child(GrexFragmentHost *host, guintptr key) {
+grex_fragment_host_get_leftover_child(GrexFragmentHost *host, GrexKey *key) {
   g_return_val_if_fail(host->in_inflation, NULL);
   return incremental_table_diff_get_leftover_value(&host->children_diff, key);
 }
@@ -445,14 +441,16 @@ grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
     g_object_set_property(target, name, grex_value_holder_get_value(value));
   }
 
-  incremental_table_diff_add_to_current_inflation(&host->property_diff,
-                                                  (guintptr)g_strdup(name),
-                                                  grex_value_holder_ref(value));
+  g_autoptr(GrexKey) key =
+      grex_key_new_string(GREX_PRIVATE_KEY_NAMESPACE, name);
+  incremental_table_diff_add_to_current_inflation(&host->property_diff, key,
+                                                  g_strdup(name));
 }
 
 /**
  * grex_fragment_host_add_signal:
  * @signal: The signal name.
+ * @key: The key to identify this connection.
  * @closure: The closure to connect to.
  *
  * Adds a new signal handler to this fragment and connects it to the target
@@ -461,15 +459,31 @@ grex_fragment_host_add_property(GrexFragmentHost *host, const char *name,
  * May only be called during an inflation.
  */
 void
-grex_fragment_host_add_signal(GrexFragmentHost *host, const char *signal,
-                              GClosure *closure, gboolean after) {
+grex_fragment_host_add_signal(GrexFragmentHost *host, GrexKey *key,
+                              const char *signal, GClosure *closure,
+                              gboolean after) {
   g_return_if_fail(host->in_inflation);
 
-  GObject *target = grex_fragment_host_get_target(host);
-  gulong id = g_signal_connect_closure(target, signal, closure, after);
+  if (incremental_table_diff_is_in_current_inflation(&host->signal_diff, key)) {
+    g_autofree char *key_desc = grex_key_describe(key);
+    g_warning("Attempted to add signal with key '%s' twice", key_desc);
+    return;
+  }
 
-  incremental_table_diff_add_to_current_inflation(
-      &host->signal_diff, (guintptr)g_strdup(signal), (gpointer)id);
+  GObject *target = grex_fragment_host_get_target(host);
+
+  gulong previous_connection =
+      (gulong)incremental_table_diff_get_leftover_value(&host->signal_diff,
+                                                        key);
+  if (previous_connection != 0) {
+    // XXX: we should avoid re-connecting if the closure, signal, & after are
+    // unchanged.
+    g_signal_handler_disconnect(target, previous_connection);
+  }
+
+  gulong id = g_signal_connect_closure(target, signal, closure, after);
+  incremental_table_diff_add_to_current_inflation(&host->signal_diff, key,
+                                                  (gpointer)id);
 }
 
 /**
@@ -484,13 +498,14 @@ grex_fragment_host_add_signal(GrexFragmentHost *host, const char *signal,
  * May only be called during an inflation.
  */
 void
-grex_fragment_host_add_property_directive(GrexFragmentHost *host, guintptr key,
+grex_fragment_host_add_property_directive(GrexFragmentHost *host, GrexKey *key,
                                           GrexPropertyDirective *directive) {
   g_return_if_fail(host->in_inflation);
 
   if (incremental_table_diff_is_in_current_inflation(&host->prop_directive_diff,
                                                      key)) {
-    g_warning("Attempted to add directive with key '%p' twice", (gpointer)key);
+    g_autofree char *key_desc = grex_key_describe(key);
+    g_warning("Attempted to add directive with key '%s' twice", key_desc);
     return;
   }
 
@@ -538,12 +553,13 @@ grex_fragment_host_apply_pending_directive_updates(GrexFragmentHost *host) {
  */
 void
 grex_fragment_host_add_structural_directive(
-    GrexFragmentHost *host, guintptr key, GrexStructuralDirective *directive) {
+    GrexFragmentHost *host, GrexKey *key, GrexStructuralDirective *directive) {
   g_return_if_fail(host->in_inflation);
 
   if (incremental_table_diff_is_in_current_inflation(
           &host->struct_directive_diff, key)) {
-    g_warning("Attempted to add directive with key '%p' twice", (gpointer)key);
+    g_autofree char *key_desc = grex_key_describe(key);
+    g_warning("Attempted to add directive with key '%s' twice", key_desc);
     return;
   }
 
@@ -561,7 +577,7 @@ grex_fragment_host_add_structural_directive(
  * May only be called during an inflation.
  */
 void
-grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
+grex_fragment_host_add_inflated_child(GrexFragmentHost *host, GrexKey *key,
                                       GObject *child) {
   g_return_if_fail(host->in_inflation);
 
@@ -573,7 +589,8 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
 
   if (incremental_table_diff_is_in_current_inflation(&host->children_diff,
                                                      key)) {
-    g_warning("Attempted to add child with key '%p' twice", (gpointer)key);
+    g_autofree char *key_desc = grex_key_describe(key);
+    g_warning("Attempted to add child with key '%s' twice", key_desc);
     return;
   }
 
@@ -594,9 +611,10 @@ grex_fragment_host_add_inflated_child(GrexFragmentHost *host, guintptr key,
 }
 
 static void
-property_diff_removal_callback(gpointer name, gpointer value,
+property_diff_removal_callback(GrexKey *key, gpointer value,
                                gpointer user_data) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
+  char *name = value;
 
   GObject *target = grex_fragment_host_get_target(host);
   GObjectClass *object_class = G_OBJECT_GET_CLASS(target);
@@ -607,7 +625,7 @@ property_diff_removal_callback(gpointer name, gpointer value,
 }
 
 static void
-child_diff_removal_callback(gpointer key, gpointer child, gpointer user_data) {
+child_diff_removal_callback(GrexKey *key, gpointer child, gpointer user_data) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
   g_return_if_fail(host->container_adapter != NULL);
 
@@ -619,7 +637,7 @@ child_diff_removal_callback(gpointer key, gpointer child, gpointer user_data) {
 }
 
 static void
-property_directive_detach_removal_callback(gpointer key, gpointer directive,
+property_directive_detach_removal_callback(GrexKey *key, gpointer directive,
                                            gpointer user_data) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(user_data);
   detach_directive(host, GREX_PROPERTY_DIRECTIVE(directive));

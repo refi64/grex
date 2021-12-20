@@ -54,7 +54,7 @@ void grex_inflator_inflate_existing_target(GrexInflator *inflator,
                                            GrexInflationFlags flags);
 
 void grex_inflator_inflate_child(GrexInflator *inflator,
-                                 GrexFragmentHost *parent, guintptr key,
+                                 GrexFragmentHost *parent, GrexKey *key,
                                  GrexFragment *child, GrexInflationFlags flags,
                                  GrexChildInflationFlags child_flags);
 

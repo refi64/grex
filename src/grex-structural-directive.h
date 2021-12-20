@@ -22,7 +22,7 @@ struct _GrexStructuralDirectiveClass {
   GrexDirectiveClass parent_class;
 
   void (*apply)(GrexStructuralDirective *directive, GrexInflator *inflator,
-                GrexFragmentHost *parent, guintptr key, GrexFragment *child,
+                GrexFragmentHost *parent, GrexKey *key, GrexFragment *child,
                 GrexInflationFlags flags, GrexChildInflationFlags child_flags);
 
   gpointer padding[15];

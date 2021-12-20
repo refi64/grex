@@ -26,7 +26,7 @@ G_DEFINE_FINAL_TYPE(GrexIfDirective, grex_if_directive,
 static void
 grex_if_directive_apply(GrexStructuralDirective *directive,
                         GrexInflator *inflator, GrexFragmentHost *parent,
-                        guintptr key, GrexFragment *child,
+                        GrexKey *key, GrexFragment *child,
                         GrexInflationFlags flags,
                         GrexChildInflationFlags child_flags) {
   GrexIfDirective *if_directive = GREX_IF_DIRECTIVE(directive);

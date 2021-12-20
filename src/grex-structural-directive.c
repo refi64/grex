@@ -15,7 +15,7 @@ G_DEFINE_ABSTRACT_TYPE(GrexStructuralDirectiveFactory,
 static void
 grex_structural_directive_apply_default(GrexStructuralDirective *directive,
                                         GrexInflator *inflator,
-                                        GrexFragmentHost *parent, guintptr key,
+                                        GrexFragmentHost *parent, GrexKey *key,
                                         GrexFragment *child,
                                         GrexInflationFlags flags,
                                         GrexChildInflationFlags child_flags) {}

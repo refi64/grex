@@ -6,6 +6,7 @@
 
 #include "gpropz.h"
 #include "grex-fragment-host.h"
+#include "grex-key-private.h"
 #include "grex-structural-directive.h"
 
 #define g_object_ref0(obj) \
@@ -243,7 +244,9 @@ grex_inflator_apply_binding(GrexInflator *inflator, GrexFragmentHost *host,
         g_cclosure_new(G_CALLBACK(on_notify_property_changed),
                        grex_value_holder_ref(result), destroy_notify_data);
 
-    grex_fragment_host_add_signal(host, notify, closure, FALSE);
+    g_autoptr(GrexKey) key =
+        grex_key_new_object(GREX_PRIVATE_KEY_NAMESPACE, G_OBJECT(binding));
+    grex_fragment_host_add_signal(host, key, notify, closure, FALSE);
   }
 }
 
@@ -330,8 +333,11 @@ add_property_directive(GrexFragmentHost *host,
     return g_steal_pointer(&directive);
   }
 
-  directive = g_object_ref0(grex_fragment_host_get_leftover_property_directive(
-      host, (guintptr)factory));
+  g_autoptr(GrexKey) key =
+      grex_key_new_object(GREX_PRIVATE_KEY_NAMESPACE, G_OBJECT(factory));
+
+  directive = g_object_ref0(
+      grex_fragment_host_get_leftover_property_directive(host, key));
   if (directive == NULL) {
     directive = grex_property_directive_factory_create(factory);
     g_return_val_if_fail(directive != NULL, NULL);
@@ -339,7 +345,7 @@ add_property_directive(GrexFragmentHost *host,
     g_object_unref(grex_fragment_host_new(G_OBJECT(directive)));
   }
 
-  grex_fragment_host_add_property_directive(host, (guintptr)factory, directive);
+  grex_fragment_host_add_property_directive(host, key, directive);
   g_hash_table_insert(inserted_directives, factory, directive);
 
   grex_fragment_host_begin_inflation(
@@ -507,8 +513,10 @@ grex_inflator_inflate_existing_target(GrexInflator *inflator, GObject *target,
 
   g_autoptr(GList) children = grex_fragment_get_children(fragment);
   for (GList *child = children; child != NULL; child = child->next) {
-    grex_inflator_inflate_child(inflator, host, (guintptr)child->data,
-                                child->data, flags, GREX_CHILD_INFLATION_NONE);
+    g_autoptr(GrexKey) key =
+        grex_key_new_object(GREX_PRIVATE_KEY_NAMESPACE, child->data);
+    grex_inflator_inflate_child(inflator, host, key, child->data, flags,
+                                GREX_CHILD_INFLATION_NONE);
   }
 
   grex_fragment_host_commit_inflation(host);
@@ -517,7 +525,7 @@ grex_inflator_inflate_existing_target(GrexInflator *inflator, GObject *target,
 static GrexStructuralDirective *
 grex_inflator_find_structural_directive_in_child(GrexInflator *inflator,
                                                  GrexFragmentHost *parent,
-                                                 guintptr key,
+                                                 GrexKey *child_key,
                                                  GrexFragment *child,
                                                  gboolean track_dependencies) {
   g_autoptr(GList) targets = grex_fragment_get_binding_targets(child);
@@ -555,8 +563,11 @@ grex_inflator_find_structural_directive_in_child(GrexInflator *inflator,
     current_factory = factory;
 
     if (directive == NULL) {
-      directive = g_object_ref0(
-          grex_fragment_host_get_leftover_structural_directive(parent, key));
+      g_autoptr(GrexKey) directive_key =
+          grex_key_new_object(GREX_PRIVATE_KEY_NAMESPACE, G_OBJECT(factory));
+      directive =
+          g_object_ref0(grex_fragment_host_get_leftover_structural_directive(
+              parent, directive_key));
       if (directive == NULL) {
         directive = grex_structural_directive_factory_create(
             GREX_STRUCTURAL_DIRECTIVE_FACTORY(factory));
@@ -565,7 +576,8 @@ grex_inflator_find_structural_directive_in_child(GrexInflator *inflator,
         g_object_unref(grex_fragment_host_new(G_OBJECT(directive)));
       }
 
-      grex_fragment_host_add_structural_directive(parent, key, directive);
+      grex_fragment_host_add_structural_directive(parent, directive_key,
+                                                  directive);
 
       grex_fragment_host_begin_inflation(
           grex_fragment_host_for_target(G_OBJECT(directive)));
@@ -591,7 +603,7 @@ grex_inflator_find_structural_directive_in_child(GrexInflator *inflator,
 
 void
 grex_inflator_inflate_child(GrexInflator *inflator, GrexFragmentHost *parent,
-                            guintptr key, GrexFragment *child,
+                            GrexKey *key, GrexFragment *child,
                             GrexInflationFlags flags,
                             GrexChildInflationFlags child_flags) {
   GObject *child_object = grex_fragment_host_get_leftover_child(parent, key);
