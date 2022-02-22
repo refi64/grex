@@ -65,6 +65,11 @@ const HelloWindow = GObject.registerClass({
       true
     ),
   },
+  Signals: {
+    'reset': {
+      param_types: [Gtk.Button]
+    }
+  },
 }, class HelloWindow extends Gtk.ApplicationWindow {
   static template
 
@@ -101,6 +106,12 @@ const HelloWindow = GObject.registerClass({
 
       this.timer_source = 0
     }
+  }
+
+  on_reset(button) {
+    console.log(`button: ${button}`)
+    this.elapsed = 0
+    // TODO: actually reset timer
   }
 })
 

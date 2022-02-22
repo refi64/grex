@@ -5,6 +5,7 @@
 #include "grex-inflator.h"
 
 #include "gpropz.h"
+#include "grex-binding-closure-private.h"
 #include "grex-fragment-host.h"
 #include "grex-key-private.h"
 #include "grex-structural-directive.h"
@@ -218,9 +219,31 @@ grex_inflator_apply_binding(GrexInflator *inflator, GrexFragmentHost *host,
       G_OBJECT_GET_CLASS(grex_fragment_host_get_target(host));
   GParamSpec *pspec = g_object_class_find_property(target_class, name);
   if (pspec == NULL) {
-    GrexSourceLocation *location = grex_binding_get_location(binding);
-    g_autofree char *location_string = grex_source_location_format(location);
-    g_warning("%s: Invalid property '%s'", location_string, name);
+    if (g_str_has_prefix(name, "on.")) {
+      // It might be a signal instead.
+      const char *signal_name = strchr(name, '.') + 1;
+
+      GType type = G_OBJECT_CLASS_TYPE(target_class);
+      guint signal_id = g_signal_lookup(signal_name, type);
+      if (signal_id == 0) {
+        GrexSourceLocation *location = grex_binding_get_location(binding);
+        g_autofree char *location_string =
+            grex_source_location_format(location);
+        g_warning("%s: Invalid signal '%s'", location_string, signal_name);
+      } else {
+        GClosure *closure =
+            grex_binding_closure_create(binding, inflator->context);
+
+        g_autoptr(GrexKey) key =
+            grex_key_new_object(GREX_PRIVATE_KEY_NAMESPACE, G_OBJECT(binding));
+        grex_fragment_host_add_signal(host, key, signal_name, closure, FALSE);
+      }
+    } else {
+      GrexSourceLocation *location = grex_binding_get_location(binding);
+      g_autofree char *location_string = grex_source_location_format(location);
+      g_warning("%s: Invalid property '%s'", location_string, name);
+    }
+
     return;
   }
 

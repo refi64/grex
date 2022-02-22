@@ -214,7 +214,8 @@ grex_binding_evaluate(GrexBinding *binding, GType expected_type,
   }
 
   gboolean lost_push_during_transform = FALSE;
-  if (grex_value_holder_get_value(result)->g_type != expected_type) {
+  if (expected_type != G_TYPE_NONE &&
+      G_VALUE_TYPE(grex_value_holder_get_value(result)) != expected_type) {
     g_autoptr(GError) local_error = NULL;
     g_autoptr(GrexValueHolder) transformed_value =
         grex_value_parser_try_transform(grex_value_parser_default(), result,

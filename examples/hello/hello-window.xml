@@ -8,5 +8,6 @@
       <GtkSwitch active="{timer-visible}" halign="end" />
     </GtkBox>
     <GtkLabel _Grex.if="[timer-visible]" label="[elapsed] second(s) elapsed" />
+    <GtkButton label="Reset" on.clicked="[emit reset($0)]" />
   </GtkBox>
 </HelloWindow>

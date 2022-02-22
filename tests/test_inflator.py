@@ -3,6 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 from gi.repository import GObject, Grex, Gtk
+from unittest.mock import MagicMock
 
 
 def _build_constant_binding(value):
@@ -44,6 +45,11 @@ class _TestObject(GObject.Object):
     @GObject.Property(type=GObject.Object)
     def inner(self):
         return self._inner
+
+    @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST,
+                    arg_types=(Gtk.Button, ))
+    def button_clicked(self, _):
+        pass
 
 
 class _HelloLabelPropertyDirective(Grex.PropertyDirective):
@@ -330,3 +336,29 @@ def test_inflate_with_structural_directives():
     inflator.inflate_existing_target(target, fragment,
                                      Grex.InflationFlags.NONE)
     assert target.get_first_child() is None
+
+
+def test_inflate_with_signals():
+    scope = _TestObject()
+    inflator = Grex.Inflator.new_with_scope(scope)
+
+    clicked_handler = MagicMock()
+    scope.connect('button-clicked', clicked_handler)
+
+    builder = Grex.BindingBuilder()
+    builder.add_expression(
+        Grex.signal_expression_new(
+            Grex.SourceLocation(), None, 'button-clicked', None,
+            [Grex.property_expression_new(Grex.SourceLocation(), None, '$0')]),
+        False)
+
+    fragment = Grex.Fragment.new(Gtk.ToggleButton.__gtype__,
+                                 Grex.SourceLocation(), False)
+    fragment.insert_binding('on.toggled', builder.build(Grex.SourceLocation()))
+
+    target = Gtk.ToggleButton()
+    inflator.inflate_existing_target(target, fragment,
+                                     Grex.InflationFlags.NONE)
+
+    target.set_active(True)
+    clicked_handler.assert_called_once_with(scope, target)

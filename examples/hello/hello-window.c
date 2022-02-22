@@ -25,7 +25,13 @@ enum {
   N_PROPS,
 };
 
+enum {
+  SIGNAL_RESET = 1,
+  N_SIGNALS,
+};
+
 static GParamSpec *properties[N_PROPS] = {NULL};
+static guint signals[N_SIGNALS] = {0};
 
 static void
 hello_window_dispose(GObject *object) {
@@ -41,6 +47,12 @@ hello_window_dispose(GObject *object) {
 
     window->timer_source = 0;
   }
+}
+
+static void
+hello_window_reset(HelloWindow *window, GtkButton *button) {
+  g_object_set(window, "elapsed", 0, NULL);
+  g_print("button: %p\n", button);
 }
 
 static void
@@ -64,6 +76,11 @@ hello_window_class_init(HelloWindowClass *klass) {
   gpropz_install_property(object_class, HelloWindow, timer_visible,
                           PROP_TIMER_VISIBLE, properties[PROP_TIMER_VISIBLE],
                           NULL);
+
+  signals[SIGNAL_RESET] =
+      g_signal_new("reset", G_TYPE_FROM_CLASS(object_class),
+                   G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
+                   0, NULL, NULL, NULL, G_TYPE_NONE, 1, GTK_TYPE_BUTTON);
 
   template = grex_template_new_from_resource(
       "/org/hello/Hello/hello-window.xml", NULL);
@@ -94,6 +111,8 @@ hello_window_init(HelloWindow *window) {
   grex_reactive_inflator_inflate(window->inflator);
 
   window->timer_source = g_timeout_add_seconds(1, on_second, window);
+
+  g_signal_connect(window, "reset", G_CALLBACK(hello_window_reset), NULL);
 }
 
 HelloWindow *

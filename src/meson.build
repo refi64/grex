@@ -24,6 +24,7 @@ grex_parser_h = grex_parser_files[1]
 grex_sources = [
   grex_parser_c,
   'grex-binding.c',
+  'grex-binding-closure.c',
   'grex-constant-value-expression.c',
   'grex-container-adapter.c',
   'grex-directive.c',
