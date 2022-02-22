@@ -339,6 +339,7 @@ grex_fragment_host_begin_inflation(GrexFragmentHost *host) {
   grex_fragment_host_clear_all_signal_handlers(host);
 
   incremental_table_diff_begin_inflation(&host->property_diff);
+  incremental_table_diff_begin_inflation(&host->signal_diff);
   incremental_table_diff_begin_inflation(&host->prop_directive_diff);
   incremental_table_diff_begin_inflation(&host->children_diff);
   incremental_table_diff_begin_inflation(&host->struct_directive_diff);
@@ -472,14 +473,8 @@ grex_fragment_host_add_signal(GrexFragmentHost *host, GrexKey *key,
 
   GObject *target = grex_fragment_host_get_target(host);
 
-  gulong previous_connection =
-      (gulong)incremental_table_diff_get_leftover_value(&host->signal_diff,
-                                                        key);
-  if (previous_connection != 0) {
-    // XXX: we should avoid re-connecting if the closure, signal, & after are
-    // unchanged.
-    g_signal_handler_disconnect(target, previous_connection);
-  }
+  // NOTE: we don't need to detach the signal, they're all detached at the start
+  // of the inflation.
 
   gulong id = g_signal_connect_closure(target, signal, closure, after);
   incremental_table_diff_add_to_current_inflation(&host->signal_diff, key,
