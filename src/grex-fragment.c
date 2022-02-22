@@ -132,7 +132,7 @@ grex_fragment_parser_start_fragment(GMarkupParseContext *context,
 
   gboolean is_root = data->fragment_stack->len == 0;
   GrexFragment *fragment =
-      grex_fragment_new(type, g_steal_pointer(&location), is_root);
+      grex_fragment_new(type, g_object_ref(location), is_root);
   if (!is_root) {
     GrexFragment *parent =
         g_ptr_array_index(data->fragment_stack, data->fragment_stack->len - 1);
