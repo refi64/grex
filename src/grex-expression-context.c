@@ -90,6 +90,30 @@ grex_expression_context_new(GObject *scope) {
 }
 
 /**
+ * grex_expression_context_clone:
+ * @scope: (transfer none) (nullable): The context to clone.
+ *
+ * Clones an expression context, including the extra names inside it.
+ *
+ * Returns: (transfer full): The new expression context.
+ */
+GrexExpressionContext *
+grex_expression_context_clone(GrexExpressionContext *base) {
+  GrexExpressionContext *context = grex_expression_context_new(base->scope);
+
+  context->extra_names = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
+                                               (GDestroyNotify)destroy_gvalue);
+  GHashTableIter iter;
+  gpointer key, value;
+  g_hash_table_iter_init(&iter, base->extra_names);
+  while (g_hash_table_iter_next(&iter, &key, &value)) {
+    grex_expression_context_insert(context, key, value);
+  }
+
+  return context;
+}
+
+/**
  * grex_expression_context_get_scope:
  *
  * Returns: (transfer none): The scope.

@@ -59,6 +59,20 @@ def test_name_priority():
     assert dest.get_string() == 'def'
 
 
+def test_clone():
+    obj = _TestObject()
+    context = Grex.ExpressionContext.new(obj)
+    context.insert('value', 'def')
+
+    clone = context.clone()
+    assert clone.get_scope() is obj
+
+    dest = GObject.Value()
+    success, _ = clone.find_name('value', dest)
+    assert success
+    assert dest.get_string() == 'def'
+
+
 def test_reset():
     context = Grex.ExpressionContext()
     reset_handler = MagicMock()
