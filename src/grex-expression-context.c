@@ -82,7 +82,7 @@ grex_expression_context_init(GrexExpressionContext *context) {
  *
  * Creates a new context to evaluate an expression, with an empty global scope.
  *
- * Returns: (transfer none): The new expression context.
+ * Returns: (transfer full): The new expression context.
  */
 GrexExpressionContext *
 grex_expression_context_new(GObject *scope) {
@@ -92,7 +92,7 @@ grex_expression_context_new(GObject *scope) {
 /**
  * grex_expression_context_get_scope:
  *
- * Returns the scope.
+ * Returns: (transfer none): The scope.
  */
 GPROPZ_DEFINE_RO(GObject *, GrexExpressionContext, grex_expression_context,
                  scope, properties[PROP_SCOPE])
