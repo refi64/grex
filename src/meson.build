@@ -95,6 +95,7 @@ g_grex_dep = declare_dependency(
   include_directories : ['.'],
   link_with : [g_grex_lib],
   dependencies : g_grex_dependencies,
+  sources : grex_enums[1],
 )
 
 grex_gir = gnome.generate_gir(
