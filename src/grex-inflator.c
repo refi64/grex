@@ -15,7 +15,7 @@
     if (obj != NULL) {     \
       g_object_ref(obj);   \
     }                      \
-    obj;                   \
+    (obj);                 \
   })
 
 struct _GrexInflator {
@@ -40,10 +40,8 @@ static void
 grex_inflator_finalize(GObject *object) {
   GrexInflator *inflator = GREX_INFLATOR(object);
 
-  g_clear_pointer(&inflator->auto_directive_names,  // NOLINT
-                  g_ptr_array_unref);
-  g_clear_pointer(&inflator->directive_factories,  // NOLINT
-                  g_hash_table_unref);
+  g_clear_pointer(&inflator->auto_directive_names, g_ptr_array_unref);
+  g_clear_pointer(&inflator->directive_factories, g_hash_table_unref);
 }
 
 static void

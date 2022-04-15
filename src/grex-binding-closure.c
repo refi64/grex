@@ -15,8 +15,8 @@ static void
 grex_binding_closure_finalize(gpointer notify_data, GClosure *closure) {
   GrexBindingClosure *binding_closure = (GrexBindingClosure *)closure;
 
-  g_clear_object(&binding_closure->binding);  // NOLINT
-  g_clear_object(&binding_closure->context);  // NOLINT
+  g_clear_object(&binding_closure->binding);
+  g_clear_object(&binding_closure->context);
 }
 
 static void

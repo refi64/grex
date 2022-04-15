@@ -36,7 +36,7 @@ static guint signals[N_SIGNALS] = {0};
 static void
 hello_window_dispose(GObject *object) {
   HelloWindow *window = HELLO_WINDOW(object);
-  g_clear_object(&window->inflator);  // NOLINT
+  g_clear_object(&window->inflator);
 
   if (window->timer_source != 0) {
     GSource *source = g_main_context_find_source_by_id(g_main_context_default(),

@@ -44,14 +44,14 @@ static void
 grex_signal_expression_dispose(GObject *object) {
   GrexSignalExpression *signal_expr = GREX_SIGNAL_EXPRESSION(object);
 
-  g_clear_object(&signal_expr->object);  // NOLINT
+  g_clear_object(&signal_expr->object);
 }
 
 static void
 grex_signal_expression_finalize(GObject *object) {
   GrexSignalExpression *signal_expr = GREX_SIGNAL_EXPRESSION(object);
 
-  g_clear_pointer(&signal_expr->signal, g_free);  // NOLINT
+  g_clear_pointer(&signal_expr->signal, g_free);
 }
 
 static GPtrArray *

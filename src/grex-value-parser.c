@@ -37,7 +37,7 @@ grex_value_parser_dispose(GObject *object) {
   GrexValueParser *parser = GREX_VALUE_PARSER(object);
 
   g_rw_lock_clear(&parser->lock);
-  g_clear_pointer(&parser->parsers, g_hash_table_unref);  // NOLINT
+  g_clear_pointer(&parser->parsers, g_hash_table_unref);
 }
 
 static void
@@ -83,13 +83,13 @@ enum_parser(const char *string, GType type, gpointer user_data,
 GrexValueParser *
 grex_value_parser_default() {
   static GrexValueParser *parser = NULL;
-  if (g_once_init_enter(&parser)) {  // NOLINT
+  if (g_once_init_enter(&parser)) {
     GrexValueParser *new_parser = grex_value_parser_new();
 
     grex_value_parser_register(new_parser, G_TYPE_ENUM, TRUE, enum_parser, NULL,
                                NULL);
 
-    g_once_init_leave(&parser, new_parser);  // NOLINT
+    g_once_init_leave(&parser, new_parser);
   }
 
   return parser;

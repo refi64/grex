@@ -32,7 +32,7 @@ static void
 grex_property_expression_dispose(GObject *object) {
   GrexPropertyExpression *expression = GREX_PROPERTY_EXPRESSION(object);
 
-  g_clear_object(&expression->object);  // NOLINT
+  g_clear_object(&expression->object);
 }
 
 static void

@@ -41,8 +41,8 @@ static void
 grex_expression_context_dispose(GObject *object) {
   GrexExpressionContext *context = GREX_EXPRESSION_CONTEXT(object);
 
-  g_clear_object(&context->scope);                             // NOLINT
-  g_clear_pointer(&context->extra_names, g_hash_table_unref);  // NOLINT
+  g_clear_object(&context->scope);
+  g_clear_pointer(&context->extra_names, g_hash_table_unref);
 }
 
 static void

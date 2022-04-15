@@ -39,9 +39,9 @@ static void
 grex_fragment_dispose(GObject *object) {
   GrexFragment *fragment = GREX_FRAGMENT(object);
 
-  g_clear_object(&fragment->location);                       // NOLINT
-  g_clear_pointer(&fragment->bindings, g_hash_table_unref);  // NOLINT
-  g_clear_pointer(&fragment->children, g_ptr_array_unref);   // NOLINT
+  g_clear_object(&fragment->location);
+  g_clear_pointer(&fragment->bindings, g_hash_table_unref);
+  g_clear_pointer(&fragment->children, g_ptr_array_unref);
 }
 
 static void

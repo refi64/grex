@@ -41,7 +41,7 @@ grex_constant_value_expression_finalize(GObject *object) {
   GrexConstantValueExpression *const_expr =
       GREX_CONSTANT_VALUE_EXPRESSION(object);
 
-  g_clear_pointer(&const_expr->value, grex_value_holder_unref);  // NOLINT
+  g_clear_pointer(&const_expr->value, grex_value_holder_unref);
 }
 
 static GrexValueHolder *

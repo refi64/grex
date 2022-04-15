@@ -62,7 +62,7 @@ segment_free(Segment *segment) {
     g_clear_pointer(&segment->constant, g_free);
     break;
   case SEGMENT_EXPRESSION:
-    g_clear_object(&segment->expression);  // NOLINT
+    g_clear_object(&segment->expression);
     break;
   }
 }
@@ -71,8 +71,8 @@ static void
 grex_binding_dispose(GObject *object) {
   GrexBinding *binding = GREX_BINDING(object);
 
-  g_clear_object(&binding->location);                      // NOLINT
-  g_clear_pointer(&binding->segments, g_ptr_array_unref);  // NOLINT
+  g_clear_object(&binding->location);
+  g_clear_pointer(&binding->segments, g_ptr_array_unref);
 }
 
 static void
@@ -231,7 +231,7 @@ grex_binding_evaluate(GrexBinding *binding, GType expected_type,
       lost_push_during_transform = TRUE;
     }
 
-    g_clear_pointer(&result, grex_value_holder_unref);  // NOLINT
+    g_clear_pointer(&result, grex_value_holder_unref);
     result = g_steal_pointer(&transformed_value);
   }
 
@@ -257,7 +257,7 @@ static void
 grex_binding_builder_dispose(GObject *object) {
   GrexBindingBuilder *builder = GREX_BINDING_BUILDER(object);
 
-  g_clear_pointer(&builder->segments, g_ptr_array_unref);  // NOLINT
+  g_clear_pointer(&builder->segments, g_ptr_array_unref);
 }
 
 static void

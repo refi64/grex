@@ -35,9 +35,9 @@ static void
 grex_reactive_inflator_dispose(GObject *object) {
   GrexReactiveInflator *inflator = GREX_REACTIVE_INFLATOR(object);
 
-  g_clear_object(&inflator->base_inflator);  // NOLINT
-  g_clear_object(&inflator->fragment);       // NOLINT
-  g_clear_object(&inflator->target);         // NOLINT
+  g_clear_object(&inflator->base_inflator);
+  g_clear_object(&inflator->fragment);
+  g_clear_object(&inflator->target);
 }
 
 static void

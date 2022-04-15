@@ -90,8 +90,8 @@ incremental_table_diff_commit_inflation(
 
 static void
 incremental_table_diff_clear(IncrementalTableDiff *diff) {
-  g_clear_pointer(&diff->leftovers, g_hash_table_unref);  // NOLINT
-  g_clear_pointer(&diff->current, g_hash_table_unref);    // NOLINT
+  g_clear_pointer(&diff->leftovers, g_hash_table_unref);
+  g_clear_pointer(&diff->current, g_hash_table_unref);
 }
 
 struct _GrexFragmentHost {
@@ -156,7 +156,7 @@ detach_directives_in_table(GrexFragmentHost *host, GHashTable *table) {
 static void
 grex_fragment_host_dispose(GObject *object) {
   GrexFragmentHost *host = GREX_FRAGMENT_HOST(object);
-  g_clear_object(&host->container_adapter);  // NOLINT
+  g_clear_object(&host->container_adapter);
 
   detach_directives_in_table(host, host->prop_directive_diff.current);
   detach_directives_in_table(host, host->prop_directive_diff.leftovers);
@@ -164,8 +164,7 @@ grex_fragment_host_dispose(GObject *object) {
   incremental_table_diff_clear(&host->property_diff);
   incremental_table_diff_clear(&host->signal_diff);
   incremental_table_diff_clear(&host->prop_directive_diff);
-  g_clear_pointer(&host->pending_prop_directive_updates,  // NOLINT
-                  g_list_free);
+  g_clear_pointer(&host->pending_prop_directive_updates, g_list_free);
   incremental_table_diff_clear(&host->struct_directive_diff);
   incremental_table_diff_clear(&host->children_diff);
 }

@@ -24,7 +24,7 @@ G_DEFINE_TYPE(GrexTemplate, grex_template, G_TYPE_OBJECT)
 static void
 grex_template_dispose(GObject *object) {
   GrexTemplate *template = GREX_TEMPLATE(object);
-  g_clear_object(&template->fragment);  // NOLINT
+  g_clear_object(&template->fragment);
 }
 
 static void

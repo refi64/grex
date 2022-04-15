@@ -35,7 +35,7 @@ grex_expression_dispose(GObject *object) {
   GrexExpression *expression = GREX_EXPRESSION(object);
   GrexExpressionPrivate *priv =
       grex_expression_get_instance_private(expression);
-  g_clear_object(&priv->location);  // NOLINT
+  g_clear_object(&priv->location);
 }
 
 static void
