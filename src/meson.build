@@ -110,6 +110,7 @@ grex_gir = gnome.generate_gir(
   includes : ['GObject-2.0', 'Gtk-4.0'],
   install : true,
   extra_args : grex_args,
+  fatal_warnings : true,
 )
 
 g_grex_build_dir = meson.current_build_dir()
