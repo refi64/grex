@@ -17,7 +17,7 @@ G_DECLARE_FINAL_TYPE(GrexExpressionContext, grex_expression_context, GREX,
 GrexExpressionContext *grex_expression_context_new(GObject *scope);
 
 GrexExpressionContext *
-grex_expression_context_clone(GrexExpressionContext *parent);
+grex_expression_context_clone(GrexExpressionContext *base);
 
 GObject *grex_expression_context_get_scope(GrexExpressionContext *context);
 

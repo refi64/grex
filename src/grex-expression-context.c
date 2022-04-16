@@ -91,7 +91,7 @@ grex_expression_context_new(GObject *scope) {
 
 /**
  * grex_expression_context_clone:
- * @scope: (transfer none) (nullable): The context to clone.
+ * @base: (transfer none) (nullable): The context to clone.
  *
  * Clones an expression context, including the extra names inside it.
  *
