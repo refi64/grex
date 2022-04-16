@@ -8,7 +8,7 @@
 
 #include <inttypes.h>
 
-typedef enum { KEY_STRING, KEY_OBJECT } KeyType;
+typedef enum { KEY_INT, KEY_STRING, KEY_OBJECT } KeyType;
 
 struct _GrexKey {
   grefcount rc;
@@ -19,6 +19,27 @@ struct _GrexKey {
 };
 
 G_DEFINE_BOXED_TYPE(GrexKey, grex_key, grex_key_ref, grex_key_unref)
+
+/**
+ * grex_key_new_int:
+ * @ns: The key's namespace.
+ * @inner: The int to store in this key.
+ *
+ * Creates a new #GrexKey in the given namespace containing an int.
+ *
+ * Returns: (transfer full): The new key.
+ */
+GrexKey *
+grex_key_new_int(GQuark ns, int inner) {
+  GrexKey *key = g_new0(GrexKey, 1);
+  g_ref_count_init(&key->rc);
+
+  key->ns = ns;
+  key->key_type = KEY_INT;
+  key->key = GINT_TO_POINTER(inner);
+
+  return key;
+}
 
 /**
  * grex_key_new_string:
@@ -46,7 +67,10 @@ grex_key_new_string(GQuark ns, const char *inner) {
  * @ns: The key's namespace.
  * @inner: The object to store in this key.
  *
- * Creates a new #GrexKey in the given namespace containing an object.
+ * Creates a new #GrexKey in the given namespace containing an object. This
+ * should only ever be used in the case where the object being used will not
+ * needlessly change; i.e., if the fragment is reloaded, but its contents are
+ * identical, the object's memory address should stay the same.
  *
  * Returns: (transfer full): The new key.
  */
@@ -85,6 +109,8 @@ void
 grex_key_unref(GrexKey *key) {
   if (g_ref_count_dec(&key->rc)) {
     switch (key->key_type) {
+    case KEY_INT:
+      break;
     case KEY_OBJECT:
       g_object_unref(key->key);
       break;
@@ -111,6 +137,7 @@ grex_key_equals(const GrexKey *a, const GrexKey *b) {
   }
 
   switch (a->key_type) {
+  case KEY_INT:
   case KEY_OBJECT:
     return a->key == b->key;
   case KEY_STRING:
@@ -137,6 +164,7 @@ grex_key_hash(const GrexKey *key) {
   fnv1a_update(&hash, (guint8 *)&key->ns, sizeof(key->ns));
 
   switch (key->key_type) {
+  case KEY_INT:
   case KEY_OBJECT:
     fnv1a_update(&hash, (guint8 *)&key->key, sizeof(key->key));
     break;
@@ -152,6 +180,8 @@ char *
 grex_key_describe(const GrexKey *key) {
   const char *ns = g_quark_to_string(key->ns);
   switch (key->key_type) {
+  case KEY_INT:
+    return g_strdup_printf("%s:%d", ns, GPOINTER_TO_INT(key->key));
   case KEY_STRING:
     return g_strdup_printf("%s:%s", ns, (const char *)key->key);
   case KEY_OBJECT:

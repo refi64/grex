@@ -9,6 +9,16 @@ NAMESPACE_2 = GLib.quark_from_string('test-namespace-2')
 
 
 def test_equality():
+    a = Grex.Key.new_int(NAMESPACE_1, 10)
+    a2 = Grex.Key.new_int(NAMESPACE_1, 10)
+    a3 = Grex.Key.new_int(NAMESPACE_2, 10)
+    b = Grex.Key.new_int(NAMESPACE_1, 20)
+
+    assert a.equals(a)
+    assert a.equals(a2)
+    assert not a.equals(a3)
+    assert not a.equals(b)
+
     a = Grex.Key.new_string(NAMESPACE_1, 'a')
     a2 = Grex.Key.new_string(NAMESPACE_1, 'a')
     a3 = Grex.Key.new_string(NAMESPACE_2, 'a')

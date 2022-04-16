@@ -233,7 +233,7 @@ grex_inflator_apply_binding(GrexInflator *inflator, GrexFragmentHost *host,
             grex_binding_closure_create(binding, inflator->context);
 
         g_autoptr(GrexKey) key =
-            grex_key_new_object(GREX_PRIVATE_KEY_NAMESPACE, G_OBJECT(binding));
+            grex_key_new_string(GREX_PRIVATE_KEY_NAMESPACE, name);
         grex_fragment_host_add_signal(host, key, signal_name, closure, FALSE);
       }
     } else {
@@ -266,7 +266,7 @@ grex_inflator_apply_binding(GrexInflator *inflator, GrexFragmentHost *host,
                        grex_value_holder_ref(result), destroy_notify_data);
 
     g_autoptr(GrexKey) key =
-        grex_key_new_object(GREX_PRIVATE_KEY_NAMESPACE, G_OBJECT(binding));
+        grex_key_new_string(GREX_PRIVATE_KEY_NAMESPACE, notify);
     grex_fragment_host_add_signal(host, key, notify, closure, FALSE);
   }
 }
@@ -533,9 +533,9 @@ grex_inflator_inflate_existing_target(GrexInflator *inflator, GObject *target,
   grex_inflator_apply_directives(inflator, host, fragment, track_dependencies);
 
   g_autoptr(GList) children = grex_fragment_get_children(fragment);
+  int i = 0;
   for (GList *child = children; child != NULL; child = child->next) {
-    g_autoptr(GrexKey) key =
-        grex_key_new_object(GREX_PRIVATE_KEY_NAMESPACE, child->data);
+    g_autoptr(GrexKey) key = grex_key_new_int(GREX_PRIVATE_KEY_NAMESPACE, i++);
     grex_inflator_inflate_child(inflator, host, key, child->data, flags,
                                 GREX_CHILD_INFLATION_NONE);
   }

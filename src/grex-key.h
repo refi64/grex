@@ -13,6 +13,7 @@ G_BEGIN_DECLS
 typedef struct _GrexKey GrexKey;
 GType grex_key_get_type();
 
+GrexKey *grex_key_new_int(GQuark ns, int inner);
 GrexKey *grex_key_new_string(GQuark ns, const char *inner);
 GrexKey *grex_key_new_object(GQuark ns, GObject *inner);
 
