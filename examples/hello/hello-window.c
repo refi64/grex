@@ -83,7 +83,7 @@ hello_window_class_init(HelloWindowClass *klass) {
                    0, NULL, NULL, NULL, G_TYPE_NONE, 1, GTK_TYPE_BUTTON);
 
   template = grex_template_new_from_resource(
-      "/org/hello/Hello/hello-window.xml", NULL);
+      "/org/hello/Hello/hello-window.xml", NULL, NULL);
   g_warn_if_fail(template != NULL);
 }
 

@@ -8,17 +8,21 @@
 #include "grex-fragment.h"
 #include "grex-inflator.h"
 #include "grex-reactive-inflator.h"
+#include "grex-resource-loader.h"
 
 #define GREX_TYPE_TEMPLATE grex_template_get_type()
 G_DECLARE_FINAL_TYPE(GrexTemplate, grex_template, GREX, TEMPLATE, GObject)
 
-GrexTemplate *grex_template_new(GrexFragment *fragment);
+GrexTemplate *grex_template_new(GrexFragment *fragment, GtkBuilderScope *scope,
+                                GrexResourceLoader *loader);
 
 GrexTemplate *grex_template_new_from_xml(const char *xml, gssize len,
                                          const char *filename,
-                                         GtkBuilderScope *scope);
+                                         GtkBuilderScope *scope,
+                                         GrexResourceLoader *loader);
 GrexTemplate *grex_template_new_from_resource(const char *resource,
-                                              GtkBuilderScope *scope);
+                                              GtkBuilderScope *scope,
+                                              GrexResourceLoader *loader);
 
 GrexFragment *grex_template_get_fragment(GrexTemplate *template);
 

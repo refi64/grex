@@ -8,7 +8,7 @@ import Gtk from 'gi://Gtk?version=4.0'
 
 // This isn't really specific to Grex at all, it's just some tricks to load our
 // resources from the build directory & locate Grex.
-function setupEnvironment() {
+function loadGrex() {
   let scriptDir = (() => {
     let stack = (new Error()).stack.trim().split('\n')
     let scriptEntry = stack[stack.length - 1]
@@ -38,12 +38,12 @@ function setupEnvironment() {
   GIRepository.Repository.prepend_search_path(compiledOutputsDir.get_path())
   GIRepository.Repository.prepend_library_path(compiledOutputsDir.get_path())
 
-  let helloResource = Gio.Resource.load(helloResourcesFile.get_path())
-  helloResource._register()
+  const Grex = gi.require('Grex')
+  Grex.ResourceLoader.default().register(helloResourcesFile.get_path())
+  return Grex
 }
 
-setupEnvironment()
-const Grex = gi.require('Grex')
+const Grex = loadGrex()
 
 // Now we get onto the Grex-related stuff!
 
@@ -78,7 +78,7 @@ const HelloWindow = GObject.registerClass({
 
     if (!HelloWindow.template) {
       HelloWindow.template = Grex.Template.new_from_resource(
-        '/org/hello/Hello/hello-window.xml', null)
+        '/org/hello/Hello/hello-window.xml', null, null)
     }
 
     this.inflator = HelloWindow.template.create_inflator(this)
@@ -116,8 +116,6 @@ const HelloWindow = GObject.registerClass({
 })
 
 function main(argv) {
-  setupEnvironment()
-
   const app = new Gtk.Application({
     application_id: 'org.hello.Hello',
     flags: Gio.ApplicationFlags.FLAGS_NONE,

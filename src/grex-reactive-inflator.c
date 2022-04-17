@@ -148,6 +148,15 @@ GPROPZ_DEFINE_RO(GrexFragment *, GrexReactiveInflator, grex_reactive_inflator,
 GPROPZ_DEFINE_RO(GObject *, GrexReactiveInflator, grex_reactive_inflator,
                  target, properties[PROP_TARGET])
 
+void
+grex_reactive_inflator_change_fragment_and_inflate(
+    GrexReactiveInflator *inflator, GrexFragment *new_fragment) {
+  g_clear_object(&inflator->fragment);
+  inflator->fragment = g_object_ref(new_fragment);
+
+  grex_reactive_inflator_inflate(inflator);
+}
+
 /**
  * grex_reactive_inflator_inflate:
  *

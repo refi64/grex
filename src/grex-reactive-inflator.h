@@ -25,6 +25,9 @@ GrexFragment *
 grex_reactive_inflator_get_fragment(GrexReactiveInflator *inflator);
 GObject *grex_reactive_inflator_get_target(GrexReactiveInflator *inflator);
 
+void grex_reactive_inflator_change_fragment_and_inflate(
+    GrexReactiveInflator *inflator, GrexFragment *new_fragment);
+
 void grex_reactive_inflator_inflate(GrexReactiveInflator *inflator);
 
 G_END_DECLS

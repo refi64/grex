@@ -18,6 +18,7 @@
 #include "grex-if-directive.h"
 #include "grex-inflator.h"
 #include "grex-reactive-inflator.h"
+#include "grex-resource-loader.h"
 #include "grex-source-location.h"
 #include "grex-structural-directive.h"
 #include "grex-template.h"

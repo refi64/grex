@@ -7,6 +7,8 @@ project('grex', 'c',
   meson_version : '>= 0.56',
 )
 
+add_project_arguments('-DG_LOG_DOMAIN="Grex"', language : 'c')
+
 gpropz_proj = subproject('gpropz')
 gpropz_dep = gpropz_proj.get_variable('gpropz_dep')
 
