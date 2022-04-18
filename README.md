@@ -5,6 +5,9 @@ complete with nice extras such as hot reload. The approach is heavily inspired
 by [the "incremental DOM" approach used by
 Angular](https://google.github.io/incremental-dom/).
 
+Please see the [introductory blog
+post](https://refi64.com/posts/introducing-grex.html) for more information.
+
 TODO: actual documentation here
 
 ## Concepts
