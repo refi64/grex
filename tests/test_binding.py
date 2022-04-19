@@ -24,14 +24,13 @@ class _TestObject(GObject.Object):
         return self._inner
 
 
-def _build_and_evaluate(builder,
-                        expected_type,
-                        *,
-                        context=None,
-                        track_dependencies=False):
+def _build_and_evaluate(
+    builder, expected_type, *, context=None, track_dependencies=False
+):
     binding = builder.build(Grex.SourceLocation())
-    return binding.evaluate(expected_type, context or Grex.ExpressionContext(),
-                            track_dependencies).get_value()
+    return binding.evaluate(
+        expected_type, context or Grex.ExpressionContext(), track_dependencies
+    ).get_value()
 
 
 def test_empty_binding():
@@ -39,8 +38,10 @@ def test_empty_binding():
     binding = Grex.BindingBuilder().build(location)
 
     assert binding.get_location() == location
-    assert binding.evaluate(str, Grex.ExpressionContext(),
-                            False).get_value() == ''
+    assert (
+        binding.evaluate(str, Grex.ExpressionContext(), False).get_value()
+        == ''
+    )
 
 
 def test_constants():
@@ -70,7 +71,8 @@ def test_expression():
     builder = Grex.BindingBuilder()
     builder.add_expression(
         Grex.property_expression_new(Grex.SourceLocation(), None, 'value'),
-        False)
+        False,
+    )
     assert _build_and_evaluate(builder, int, context=context) == 10
     changed_handler.assert_not_called()
 
@@ -79,11 +81,14 @@ def test_expression():
     builder = Grex.BindingBuilder()
     builder.add_expression(
         Grex.property_expression_new(Grex.SourceLocation(), None, 'value'),
-        False)
-    assert _build_and_evaluate(builder,
-                               int,
-                               context=context,
-                               track_dependencies=True) == 10
+        False,
+    )
+    assert (
+        _build_and_evaluate(
+            builder, int, context=context, track_dependencies=True
+        )
+        == 10
+    )
     changed_handler.assert_not_called()
 
     changed_handler.reset_mock()
@@ -100,5 +105,6 @@ def test_compound():
     builder.add_constant('abc', -1)
     builder.add_expression(
         Grex.property_expression_new(Grex.SourceLocation(), None, 'value'),
-        False)
+        False,
+    )
     assert _build_and_evaluate(builder, str, context=context) == 'abc10'

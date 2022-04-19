@@ -21,8 +21,9 @@ def test_template_reload(resource_directory):
     loader.connect('changed', changed_handler)
 
     label = Gtk.Label()
-    template = Grex.Template.new_from_resource(resource_directory.content_path,
-                                               None, loader)
+    template = Grex.Template.new_from_resource(
+        resource_directory.content_path, None, loader
+    )
     inflator = template.create_inflator(label)
     inflator.inflate()
 

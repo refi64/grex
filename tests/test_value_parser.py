@@ -9,8 +9,9 @@ import pytest
 def test_default_enum_parser():
     parser = Grex.ValueParser.default()
 
-    assert parser.try_parse('center',
-                            Gtk.Align).get_value() == Gtk.Align.CENTER
+    assert (
+        parser.try_parse('center', Gtk.Align).get_value() == Gtk.Align.CENTER
+    )
 
     with pytest.raises(GLib.GError) as excinfo:
         parser.try_parse('abc', Gtk.Align)

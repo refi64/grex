@@ -46,12 +46,15 @@ class ResourceDirectory:
 
         ET.ElementTree(root).write(resource_xml_path)
 
-        subprocess.run(['glib-compile-resources', resource_xml_path.name],
-                       cwd=self.directory,
-                       check=True)
+        subprocess.run(
+            ['glib-compile-resources', resource_xml_path.name],
+            cwd=self.directory,
+            check=True,
+        )
 
 
 @pytest.fixture
 def resource_directory(tmp_path):
-    return ResourceDirectory(tmp_path,
-                             f'{TEST_RESOURCE_PREFIX}/{uuid.uuid4().hex}')
+    return ResourceDirectory(
+        tmp_path, f'{TEST_RESOURCE_PREFIX}/{uuid.uuid4().hex}'
+    )

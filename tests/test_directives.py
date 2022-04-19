@@ -18,8 +18,8 @@ def _build_constant_binding(value):
 def _build_value_binding(value):
     builder = Grex.BindingBuilder()
     builder.add_expression(
-        Grex.constant_value_expression_new(Grex.SourceLocation(), value),
-        False)
+        Grex.constant_value_expression_new(Grex.SourceLocation(), value), False
+    )
     return builder.build(Grex.SourceLocation())
 
 
@@ -36,19 +36,22 @@ def _create_grid_fragment():
 
 
 def _create_window_fragment():
-    return Grex.Fragment.new(Gtk.Window.__gtype__, Grex.SourceLocation(),
-                             False)
+    return Grex.Fragment.new(
+        Gtk.Window.__gtype__, Grex.SourceLocation(), False
+    )
 
 
 def _create_widget_fragment(*, is_root=False):
-    return Grex.Fragment.new(MyWidget.__gtype__, Grex.SourceLocation(),
-                             is_root)
+    return Grex.Fragment.new(
+        MyWidget.__gtype__, Grex.SourceLocation(), is_root
+    )
 
 
 def test_if_directive():
     inflator = Grex.Inflator()
-    inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [Grex.IfDirectiveFactory()])
+    inflator.add_directives(
+        Grex.InflatorDirectiveFlags.NONE, [Grex.IfDirectiveFactory()]
+    )
 
     fragment = _create_box_fragment()
     child_fragment = _create_label_fragment()
@@ -57,22 +60,27 @@ def test_if_directive():
 
     target = Gtk.Box()
     Grex.FragmentHost.new(target).set_container_adapter(
-        Grex.GtkWidgetContainerAdapter.new())
+        Grex.GtkWidgetContainerAdapter.new()
+    )
 
-    inflator.inflate_existing_target(target, fragment,
-                                     Grex.InflationFlags.NONE)
+    inflator.inflate_existing_target(
+        target, fragment, Grex.InflationFlags.NONE
+    )
     assert isinstance(target.get_first_child(), Gtk.Label)
 
     child_fragment.insert_binding('_Grex.if', _build_value_binding(False))
-    inflator.inflate_existing_target(target, fragment,
-                                     Grex.InflationFlags.NONE)
+    inflator.inflate_existing_target(
+        target, fragment, Grex.InflationFlags.NONE
+    )
     assert target.get_first_child() is None
 
 
 def test_widget_container_directive():
     inflator = Grex.Inflator()
-    inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [Grex.GtkWidgetContainerDirectiveFactory()])
+    inflator.add_directives(
+        Grex.InflatorDirectiveFlags.NONE,
+        [Grex.GtkWidgetContainerDirectiveFactory()],
+    )
 
     fragment = _create_widget_fragment(is_root=True)
 
@@ -88,7 +96,8 @@ def test_widget_container_directive():
     assert isinstance(target, Gtk.Widget)
 
     adapter = Grex.FragmentHost.get_container_adapter(
-        Grex.FragmentHost.for_target(target))
+        Grex.FragmentHost.for_target(target)
+    )
     assert isinstance(adapter, Grex.GtkWidgetContainerAdapter)
 
     child_1 = target.get_first_child()
@@ -102,8 +111,10 @@ def test_widget_container_directive():
 
 def test_box_container_directive():
     inflator = Grex.Inflator()
-    inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [Grex.GtkBoxContainerDirectiveFactory()])
+    inflator.add_directives(
+        Grex.InflatorDirectiveFlags.NONE,
+        [Grex.GtkBoxContainerDirectiveFactory()],
+    )
 
     fragment = _create_box_fragment()
 
@@ -119,7 +130,8 @@ def test_box_container_directive():
     assert isinstance(target, Gtk.Box)
 
     adapter = Grex.FragmentHost.get_container_adapter(
-        Grex.FragmentHost.for_target(target))
+        Grex.FragmentHost.for_target(target)
+    )
     assert isinstance(adapter, Grex.GtkBoxContainerAdapter)
 
     child_1 = target.get_first_child()
@@ -133,8 +145,10 @@ def test_box_container_directive():
 
 def test_child_property_container_directive():
     inflator = Grex.Inflator()
-    inflator.add_directives(Grex.InflatorDirectiveFlags.NONE,
-                            [Grex.GtkChildPropertyContainerDirectiveFactory()])
+    inflator.add_directives(
+        Grex.InflatorDirectiveFlags.NONE,
+        [Grex.GtkChildPropertyContainerDirectiveFactory()],
+    )
 
     fragment = _create_window_fragment()
 
@@ -146,7 +160,8 @@ def test_child_property_container_directive():
     assert isinstance(target, Gtk.Window)
 
     adapter = Grex.FragmentHost.get_container_adapter(
-        Grex.FragmentHost.for_target(target))
+        Grex.FragmentHost.for_target(target)
+    )
     assert isinstance(adapter, Grex.GtkChildPropertyContainerAdapter)
 
     child = target.get_child()
@@ -156,42 +171,52 @@ def test_child_property_container_directive():
 
 def test_grid_container_directive():
     inflator = Grex.Inflator()
-    inflator.add_directives(Grex.InflatorDirectiveFlags.NONE, [
-        Grex.GtkGridContainerDirectiveFactory(),
-        Grex.GtkGridChildDirectiveFactory()
-    ])
+    inflator.add_directives(
+        Grex.InflatorDirectiveFlags.NONE,
+        [
+            Grex.GtkGridContainerDirectiveFactory(),
+            Grex.GtkGridChildDirectiveFactory(),
+        ],
+    )
 
     fragment = _create_grid_fragment()
 
     child_1_fragment = _create_label_fragment()
     child_1_fragment.insert_binding('label', _build_constant_binding('a'))
-    child_1_fragment.insert_binding('Gtk.grid-child.row-span',
-                                    _build_value_binding(3))
-    child_1_fragment.insert_binding('Gtk.grid-child.column-span',
-                                    _build_value_binding(2))
+    child_1_fragment.insert_binding(
+        'Gtk.grid-child.row-span', _build_value_binding(3)
+    )
+    child_1_fragment.insert_binding(
+        'Gtk.grid-child.column-span', _build_value_binding(2)
+    )
     fragment.add_child(child_1_fragment)
 
     child_2_fragment = _create_label_fragment()
     child_2_fragment.insert_binding('label', _build_constant_binding('b'))
-    child_2_fragment.insert_binding('Gtk.grid-child.row',
-                                    _build_value_binding(4))
-    child_2_fragment.insert_binding('Gtk.grid-child.column',
-                                    _build_value_binding(2))
+    child_2_fragment.insert_binding(
+        'Gtk.grid-child.row', _build_value_binding(4)
+    )
+    child_2_fragment.insert_binding(
+        'Gtk.grid-child.column', _build_value_binding(2)
+    )
     fragment.add_child(child_2_fragment)
 
     child_3_fragment = _create_label_fragment()
     child_3_fragment.insert_binding('label', _build_constant_binding('c'))
-    child_3_fragment.insert_binding('Gtk.grid-child.on-side',
-                                    _build_constant_binding('left'))
-    child_3_fragment.insert_binding('Gtk.grid-child.column-span',
-                                    _build_value_binding(2))
+    child_3_fragment.insert_binding(
+        'Gtk.grid-child.on-side', _build_constant_binding('left')
+    )
+    child_3_fragment.insert_binding(
+        'Gtk.grid-child.column-span', _build_value_binding(2)
+    )
     fragment.add_child(child_3_fragment)
 
     target = inflator.inflate_new_target(fragment, Grex.InflationFlags.NONE)
     assert isinstance(target, Gtk.Grid)
 
     adapter = Grex.FragmentHost.get_container_adapter(
-        Grex.FragmentHost.for_target(target))
+        Grex.FragmentHost.for_target(target)
+    )
     assert isinstance(adapter, Grex.GtkGridContainerAdapter)
 
     child_1 = target.get_child_at(0, 0)

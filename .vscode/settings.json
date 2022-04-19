@@ -1,3 +1,5 @@
 {
-  "clangd.arguments": ["--header-insertion=never"]
+  "clangd.arguments": ["--header-insertion=never"],
+  "python.formatting.provider": "black",
+  "python.formatting.blackPath": "~/.local/bin/blue"
 }

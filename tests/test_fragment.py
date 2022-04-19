@@ -17,8 +17,9 @@ def test_empty_fragment():
 
 
 def test_fragment_bindings():
-    fragment = Grex.Fragment.new(Gtk.Box.__gtype__, Grex.SourceLocation(),
-                                 False)
+    fragment = Grex.Fragment.new(
+        Gtk.Box.__gtype__, Grex.SourceLocation(), False
+    )
 
     assert fragment.get_binding_targets() == []
     assert fragment.get_binding('not found') is None
@@ -63,12 +64,16 @@ def test_fragment_parsing_bindings():
     fragment = Grex.Fragment.parse_xml('<GtkLabel text="Hello!"/>', -1)
     assert fragment.get_binding_targets() == ['text']
 
-    assert fragment.get_binding('text').evaluate(str, Grex.ExpressionContext(),
-                                                 False).get_value() == 'Hello!'
+    assert (
+        fragment.get_binding('text')
+        .evaluate(str, Grex.ExpressionContext(), False)
+        .get_value()
+        == 'Hello!'
+    )
 
 
 def test_fragment_parsing_children():
-    XML = '''
+    XML = """
     <GtkBox>
         <GtkGrid>
             <GtkButton/>
@@ -79,7 +84,7 @@ def test_fragment_parsing_children():
             <GtkSwitch/>
         </GtkFlowBox>
     </GtkBox>
-    '''
+    """
 
     root = Grex.Fragment.parse_xml(XML, -1)
     assert root.get_target_type() == Gtk.Box.__gtype__

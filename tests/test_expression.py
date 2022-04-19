@@ -51,14 +51,17 @@ class _TestObject(GObject.Object):
     def basic_signal(self):
         pass
 
-    @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST,
-                    arg_types=(int, Gtk.Align),
-                    return_type=str)
+    @GObject.Signal(
+        flags=GObject.SignalFlags.RUN_LAST,
+        arg_types=(int, Gtk.Align),
+        return_type=str,
+    )
     def echo_signal(self, x, align):
         return f'args: {x} {align.value_name}'
 
-    @GObject.Signal(flags=GObject.SignalFlags.RUN_LAST
-                    | GObject.SignalFlags.DETAILED)
+    @GObject.Signal(
+        flags=GObject.SignalFlags.RUN_LAST | GObject.SignalFlags.DETAILED
+    )
     def detailed_signal(self):
         pass
 
@@ -68,8 +71,9 @@ def _make_property_expr(object, prop):
 
 
 def _make_signal_expr(object, signal, *, detail=None, args=[]):
-    return Grex.signal_expression_new(Grex.SourceLocation(), object, signal,
-                                      detail, args)
+    return Grex.signal_expression_new(
+        Grex.SourceLocation(), object, signal, detail, args
+    )
 
 
 def _parse_and_eval(s, context):
@@ -100,8 +104,9 @@ def test_property_expr(target_object):
 def test_signal_expr(target_object):
     is_inner = isinstance(target_object, _InnerObject)
     if is_inner:
-        return _make_signal_expr(_make_property_expr(None, 'inner'),
-                                 'basic-signal')
+        return _make_signal_expr(
+            _make_property_expr(None, 'inner'), 'basic-signal'
+        )
     else:
         return _make_signal_expr(None, 'basic-signal')
 
@@ -131,20 +136,24 @@ def test_property_expression_constant():
     assert not expr.is_constant()
 
 
-def test_property_expression_basic(target_object, test_property_expr, context,
-                                   changed_handler):
-    result = test_property_expr.evaluate(context,
-                                         Grex.ExpressionEvaluationFlags.NONE)
+def test_property_expression_basic(
+    target_object, test_property_expr, context, changed_handler
+):
+    result = test_property_expr.evaluate(
+        context, Grex.ExpressionEvaluationFlags.NONE
+    )
     assert not result.can_push()
     assert result.get_value() == target_object.value
     target_object.value = target_object.NEXT_VALUE
     changed_handler.assert_not_called()
 
 
-def test_property_expression_push(target_object, test_property_expr, context,
-                                  changed_handler):
+def test_property_expression_push(
+    target_object, test_property_expr, context, changed_handler
+):
     result = test_property_expr.evaluate(
-        context, Grex.ExpressionEvaluationFlags.ENABLE_PUSH)
+        context, Grex.ExpressionEvaluationFlags.ENABLE_PUSH
+    )
     assert result.can_push()
     assert result.get_value() == target_object.value
     result.push(target_object.NEXT_VALUE)
@@ -152,21 +161,26 @@ def test_property_expression_push(target_object, test_property_expr, context,
     changed_handler.assert_not_called()
 
 
-def test_property_expression_deps(target_object, test_property_expr, context,
-                                  changed_handler):
+def test_property_expression_deps(
+    target_object, test_property_expr, context, changed_handler
+):
     result = test_property_expr.evaluate(
-        context, Grex.ExpressionEvaluationFlags.TRACK_DEPENDENCIES)
+        context, Grex.ExpressionEvaluationFlags.TRACK_DEPENDENCIES
+    )
     assert not result.can_push()
     assert result.get_value() == target_object.value
     target_object.value = target_object.NEXT_VALUE
     changed_handler.assert_called_once()
 
 
-def test_property_expression_push_and_deps(target_object, test_property_expr,
-                                           context, changed_handler):
+def test_property_expression_push_and_deps(
+    target_object, test_property_expr, context, changed_handler
+):
     result = test_property_expr.evaluate(
-        context, Grex.ExpressionEvaluationFlags.ENABLE_PUSH
-        | Grex.ExpressionEvaluationFlags.TRACK_DEPENDENCIES)
+        context,
+        Grex.ExpressionEvaluationFlags.ENABLE_PUSH
+        | Grex.ExpressionEvaluationFlags.TRACK_DEPENDENCIES,
+    )
     assert result.can_push()
     assert result.get_value() == target_object.value
     result.push(target_object.NEXT_VALUE)
@@ -179,8 +193,9 @@ def test_property_expression_on_bad_type(context):
     with pytest.raises(GLib.GError) as excinfo:
         expr.evaluate(context, 0)
 
-    assert excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_TYPE, \
-        excinfo.value
+    assert (
+        excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_TYPE
+    ), excinfo.value
 
 
 def test_property_expression_undefined_global(context):
@@ -188,8 +203,9 @@ def test_property_expression_undefined_global(context):
     with pytest.raises(GLib.GError) as excinfo:
         expr.evaluate(context, 0)
 
-    assert (excinfo.value.code == Grex.ExpressionEvaluationError.UNDEFINED_NAME
-            ), excinfo.value
+    assert (
+        excinfo.value.code == Grex.ExpressionEvaluationError.UNDEFINED_NAME
+    ), excinfo.value
 
 
 def test_property_expression_undefined_property(context):
@@ -197,16 +213,18 @@ def test_property_expression_undefined_property(context):
     with pytest.raises(GLib.GError) as excinfo:
         expr.evaluate(context, 0)
 
-    assert (excinfo.value.code ==
-            Grex.ExpressionEvaluationError.UNDEFINED_PROPERTY), excinfo.value
+    assert (
+        excinfo.value.code == Grex.ExpressionEvaluationError.UNDEFINED_PROPERTY
+    ), excinfo.value
 
 
 def test_signal_expression_basic(target_object, test_signal_expr, context):
     handler = MagicMock()
     target_object.connect('basic-signal', handler)
 
-    result = test_signal_expr.evaluate(context,
-                                       Grex.ExpressionEvaluationFlags.NONE)
+    result = test_signal_expr.evaluate(
+        context, Grex.ExpressionEvaluationFlags.NONE
+    )
     assert result.get_value() is None
 
     handler.assert_called_once()
@@ -218,8 +236,9 @@ def test_signal_expression_args(context):
         'echo-signal',
         args=[
             Grex.constant_value_expression_new(Grex.SourceLocation(), 1),
-            Grex.constant_value_expression_new(Grex.SourceLocation(), 'start')
-        ])
+            Grex.constant_value_expression_new(Grex.SourceLocation(), 'start'),
+        ],
+    )
     result = expr.evaluate(context, Grex.ExpressionEvaluationFlags.NONE)
     assert result.get_value() == 'args: 1 GTK_ALIGN_START'
 
@@ -239,8 +258,9 @@ def test_signal_expression_undefined_signal(context):
     with pytest.raises(GLib.GError) as excinfo:
         expr.evaluate(context, 0)
 
-    assert (excinfo.value.code ==
-            Grex.ExpressionEvaluationError.UNDEFINED_SIGNAL), excinfo.value
+    assert (
+        excinfo.value.code == Grex.ExpressionEvaluationError.UNDEFINED_SIGNAL
+    ), excinfo.value
 
 
 def test_signal_expression_invalid_detail(context):
@@ -248,27 +268,32 @@ def test_signal_expression_invalid_detail(context):
     with pytest.raises(GLib.GError) as excinfo:
         expr.evaluate(context, 0)
 
-    assert (excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_DETAIL
-            ), excinfo.value
+    assert (
+        excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_DETAIL
+    ), excinfo.value
 
     expr = _make_signal_expr(None, 'detailed-signal')
     with pytest.raises(GLib.GError) as excinfo:
         expr.evaluate(context, 0)
 
-    assert (excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_DETAIL
-            ), excinfo.value
+    assert (
+        excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_DETAIL
+    ), excinfo.value
 
 
 def test_signal_expression_invalid_args_count(context):
     expr = _make_signal_expr(
         None,
         'basic-signal',
-        args=[Grex.constant_value_expression_new(Grex.SourceLocation(), 1)])
+        args=[Grex.constant_value_expression_new(Grex.SourceLocation(), 1)],
+    )
     with pytest.raises(GLib.GError) as excinfo:
         expr.evaluate(context, 0)
 
-    assert (excinfo.value.code == Grex.ExpressionEvaluationError.
-            INVALID_ARGUMENT_COUNT), excinfo.value
+    assert (
+        excinfo.value.code
+        == Grex.ExpressionEvaluationError.INVALID_ARGUMENT_COUNT
+    ), excinfo.value
 
 
 def test_signal_expression_invalid_type(context):
@@ -277,13 +302,15 @@ def test_signal_expression_invalid_type(context):
         'echo-signal',
         args=[
             Grex.constant_value_expression_new(Grex.SourceLocation(), 'abc'),
-            Grex.constant_value_expression_new(Grex.SourceLocation(), 'def')
-        ])
+            Grex.constant_value_expression_new(Grex.SourceLocation(), 'def'),
+        ],
+    )
     with pytest.raises(GLib.GError) as excinfo:
         expr.evaluate(context, 0)
 
-    assert (excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_TYPE
-            ), excinfo.value
+    assert (
+        excinfo.value.code == Grex.ExpressionEvaluationError.INVALID_TYPE
+    ), excinfo.value
 
 
 def test_constant_expression_parsing(context):
@@ -321,7 +348,11 @@ def test_signal_expression_parsing(test_object, context):
     _parse_and_eval('emit detailed-signal::detail()', context)
     detailed_handler.assert_called_once()
 
-    assert _parse_and_eval("emit echo-signal(1, 'end')",
-                           context) == 'args: 1 GTK_ALIGN_END'
-    assert _parse_and_eval("emit echo-signal(1, 'end', )",
-                           context) == 'args: 1 GTK_ALIGN_END'
+    assert (
+        _parse_and_eval("emit echo-signal(1, 'end')", context)
+        == 'args: 1 GTK_ALIGN_END'
+    )
+    assert (
+        _parse_and_eval("emit echo-signal(1, 'end', )", context)
+        == 'args: 1 GTK_ALIGN_END'
+    )
