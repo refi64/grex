@@ -81,7 +81,10 @@ grex_expression_parse(const char *string, gssize len,
 
   g_autoptr(GObject) result = NULL;
   if (grex_parser_impl_parse(ctx, (void **)&result)) {
-    auxil_expected_eof(auxil);
+    if (*auxil->error == NULL) {
+      auxil_expected_eof(auxil);
+    }
+
     return NULL;
   }
 

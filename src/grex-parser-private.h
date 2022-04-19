@@ -92,7 +92,8 @@ auxil_get_location(Auxil *auxil, size_t pos) {
 
 G_GNUC_UNUSED static void
 auxil_error(Auxil *auxil) {
-  g_return_if_fail(auxil->error == NULL);
+  g_return_if_fail(auxil->error != NULL);
+  g_return_if_fail(*auxil->error == NULL);
 
   AUXIL_GET_LOCATION(auxil->pos);
   grex_set_expression_parse_error(auxil->error, location, 0, "Invalid syntax");
@@ -101,6 +102,8 @@ auxil_error(Auxil *auxil) {
 G_GNUC_UNUSED static void
 auxil_expected_eof(Auxil *auxil) {
   g_warn_if_fail(auxil_is_eof(auxil));
+  g_return_if_fail(auxil->error != NULL);
+  g_return_if_fail(*auxil->error == NULL);
 
   AUXIL_GET_LOCATION(auxil->pos);
   grex_set_expression_parse_error(auxil->error, location, 0, "Expected EOF");

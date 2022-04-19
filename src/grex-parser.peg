@@ -20,7 +20,7 @@
 #define PCC_MALLOC(auxil, size) g_malloc(size)
 #define PCC_REALLOC(auxil, ptr, size) g_realloc(ptr, size)
 #define PCC_GETCHAR(auxil) auxil_nextchar(auxil)
-#define PCC_ERROR(auxil) auxil_error
+#define PCC_ERROR(auxil) auxil_error(auxil)
 
 }
 
