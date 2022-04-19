@@ -1,0 +1,35 @@
+image: fedora/36
+sources:
+  - https://github.com/refi64/grex
+packages:
+  - clang
+  - clang-tools-extra
+  - gobject-introspection-devel
+  - gtk4-devel
+  - meson
+  - pipx
+  - python3-gobject
+  - python3-pytest
+  - python3-pytest-xvfb
+tasks:
+  - dependencies: |
+      pipx install git+https://github.com/grantjenks/blue
+
+  - format: |
+      cd grex
+      find src -name '*.c' -o -name '*.h' | xargs clang-format -n --Werror
+      blue --check tests/
+
+  - test-gcc: |
+      cd grex
+      meson _build/ -Dpytest-force-colors=true -Dwerror=true
+      ninja -C _build/ test
+
+  - test-clang: |
+      cd grex
+      CC=clang meson setup --wipe _build/
+      ninja -C _build/
+
+  - lint: |
+      cd grex
+      run-clang-tidy -p _build/ '/grex/src/'
