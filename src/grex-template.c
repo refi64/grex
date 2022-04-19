@@ -120,8 +120,8 @@ grex_template_new_from_xml(const char *xml, gssize len, const char *filename,
   g_autoptr(GrexFragment) fragment =
       grex_fragment_parse_xml(xml, len, filename, scope, &error);
   if (fragment == NULL) {
-    g_error("Failed to parse template (%s): %s",
-            filename != NULL ? filename : "<unknown>", error->message);
+    g_critical("Failed to parse template (%s): %s",
+               filename != NULL ? filename : "<unknown>", error->message);
     return NULL;
   }
 
@@ -147,7 +147,7 @@ grex_template_new_from_resource(const char *resource, GtkBuilderScope *scope,
   g_autoptr(GBytes) bytes =
       g_resources_lookup_data(resource, G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
   if (bytes == NULL) {
-    g_error("Failed to look up resource %s: %s", resource, error->message);
+    g_critical("Failed to look up resource %s: %s", resource, error->message);
     return NULL;
   }
 
