@@ -9,9 +9,8 @@
 
 #include <glib.h>
 
-#define OWN_OBJ(x)                 \
-  G_GNUC_UNUSED g_autoptr(GObject) \
-  G_PASTE(v, __LINE__) = G_OBJECT(x)
+#define OWN_OBJ(x) \
+  G_GNUC_UNUSED g_autoptr(GObject) G_PASTE(v, __LINE__) = G_OBJECT(x)
 #define OWN_STR(x) G_GNUC_UNUSED g_autofree char *G_PASTE(v, __LINE__) = x
 
 // Declare g_autoptr cleanup funcs for packcc's context type.
