@@ -143,6 +143,8 @@ grex_key_equals(const GrexKey *a, const GrexKey *b) {
   case KEY_STRING:
     return g_str_equal(a->key, b->key);
   }
+
+  g_error("Unknown key type: %d\n", a->key_type);
 }
 
 // Standard FNV-1a hash.
@@ -187,6 +189,8 @@ grex_key_describe(const GrexKey *key) {
   case KEY_OBJECT:
     return g_strdup_printf("%s:0x%" PRIXPTR, ns, (uintptr_t)key->key);
   }
+
+  g_error("Unknown key type: %d\n", key->key_type);
 }
 
 G_DEFINE_QUARK("grex-private-key-namespace-quark", grex_private_key_namespace)
